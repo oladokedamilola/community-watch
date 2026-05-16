@@ -1,0 +1,916 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Report Outage - GridWatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Enhanced Form Container with proper spacing */
+    .container-fluid {
+        width: 100%;
+        padding: var(--space-lg);
+        min-height: calc(100vh - var(--top-navbar-height));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: var(--space-base);
+        }
+    }
+    
+    .form-container {
+        max-width: 800px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    /* IMPROVED: Form Card with enhanced styling */
+    .form-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-2xl);
+        box-shadow: var(--shadow-lg);
+        transition: var(--transition-base);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    @media (max-width: 768px) {
+        .form-card {
+            padding: var(--space-lg);
+        }
+    }
+    
+    /* IMPROVED: Outage Type Buttons with better touch targets */
+    .outage-type-buttons {
+        display: flex;
+        gap: var(--space-base);
+        flex-wrap: wrap;
+    }
+    
+    @media (max-width: 640px) {
+        .outage-type-buttons {
+            gap: var(--space-sm);
+        }
+    }
+    
+    .outage-btn {
+        flex: 1;
+        padding: var(--space-base) var(--space-lg);
+        border: 2px solid var(--gray-light);
+        background: white;
+        border-radius: var(--radius-lg);
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-base);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        min-height: 56px;
+    }
+    
+    @media (max-width: 640px) {
+        .outage-btn {
+            padding: var(--space-sm) var(--space-base);
+            font-size: 0.875rem;
+            min-height: 48px;
+        }
+    }
+    
+    .outage-btn i {
+        font-size: 1.2rem;
+        transition: var(--transition-base);
+    }
+    
+    .outage-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .outage-btn:active {
+        transform: translateY(0);
+    }
+    
+    .outage-btn.active {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .outage-btn[data-type="electricity"]:hover,
+    .outage-btn[data-type="electricity"].active {
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        border-color: #F59E0B;
+        color: #D97706;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
+    
+    .outage-btn[data-type="electricity"].active i {
+        animation: bounce 0.3s ease;
+    }
+    
+    .outage-btn[data-type="water"]:hover,
+    .outage-btn[data-type="water"].active {
+        background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+        border-color: #3B82F6;
+        color: #2563EB;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    
+    .outage-btn[data-type="water"].active i {
+        animation: bounce 0.3s ease;
+    }
+    
+    .outage-btn[data-type="network"]:hover,
+    .outage-btn[data-type="network"].active {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        border-color: #10B981;
+        color: #059669;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+    
+    .outage-btn[data-type="network"].active i {
+        animation: bounce 0.3s ease;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+    
+    /* IMPROVED: Form Groups with better spacing */
+    .form-group {
+        margin-bottom: var(--space-lg);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        margin-bottom: var(--space-sm);
+        display: block;
+        color: var(--secondary);
+        font-size: 0.875rem;
+        letter-spacing: -0.2px;
+    }
+    
+    .form-label i {
+        margin-right: var(--space-sm);
+        color: var(--primary);
+        width: 20px;
+    }
+    
+    .required-star {
+        color: var(--danger);
+        margin-left: var(--space-xs);
+    }
+    
+    /* IMPROVED: Form Controls with better focus states */
+    .form-control {
+        width: 100%;
+        padding: var(--space-md) var(--space-base);
+        border: 2px solid var(--gray-light);
+        border-radius: var(--radius-md);
+        font-size: 0.95rem;
+        transition: var(--transition-base);
+        background: white;
+        font-family: inherit;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    
+    .form-control:focus:invalid {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    /* IMPROVED: Location Hint */
+    .location-hint {
+        font-size: 0.7rem;
+        color: var(--gray);
+        margin-top: var(--space-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+    
+    .location-hint i {
+        font-size: 0.75rem;
+    }
+    
+    /* IMPROVED: Photo Upload with better UX */
+    .photo-upload-area {
+        border: 2px dashed var(--gray-light);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition-base);
+        background: var(--gray-lighter);
+    }
+    
+    .photo-upload-area:hover {
+        border-color: var(--primary);
+        background: rgba(46, 125, 50, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .photo-upload-area:active {
+        transform: translateY(0);
+    }
+    
+    .photo-upload-area i {
+        font-size: 3rem;
+        color: var(--gray);
+        margin-bottom: var(--space-sm);
+        transition: var(--transition-base);
+    }
+    
+    .photo-upload-area:hover i {
+        color: var(--primary);
+        transform: scale(1.1);
+    }
+    
+    .photo-upload-area p {
+        margin: var(--space-sm) 0;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    .photo-upload-area small {
+        color: var(--gray);
+        font-size: 0.7rem;
+    }
+    
+    /* IMPROVED: Photo Preview with better styling */
+    .photo-preview-container {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+    }
+    
+    .preview-image {
+        max-width: 100%;
+        max-height: 250px;
+        border-radius: var(--radius-md);
+        border: 2px solid var(--gray-light);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .remove-photo-btn {
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        transition: var(--transition-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .remove-photo-btn:hover {
+        transform: scale(1.1);
+        background: #dc2626;
+    }
+    
+    .remove-photo-btn:active {
+        transform: scale(0.95);
+    }
+    
+    /* IMPROVED: Checkbox Styling */
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        cursor: pointer;
+        padding: var(--space-xs) 0;
+    }
+    
+    .checkbox-wrapper input {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: var(--primary);
+    }
+    
+    .checkbox-wrapper span {
+        user-select: none;
+        font-weight: 500;
+    }
+    
+    /* IMPROVED: Submit Button */
+    .submit-btn {
+        width: 100%;
+        padding: var(--space-base) var(--space-lg);
+        font-size: 1rem;
+        font-weight: 700;
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: var(--transition-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        margin-top: var(--space-base);
+        min-height: 56px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .submit-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .submit-btn:hover:not(:disabled)::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .submit-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .submit-btn:active:not(:disabled) {
+        transform: translateY(0);
+    }
+    
+    .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* IMPROVED: Loading Overlay */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .loading-content {
+        background: white;
+        padding: var(--space-xl);
+        border-radius: var(--radius-xl);
+        text-align: center;
+        animation: slideInUp 0.3s ease;
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 3px solid var(--gray-light);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto var(--space-base);
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-content p {
+        color: var(--secondary);
+        font-weight: 500;
+        margin: 0;
+    }
+    
+    /* IMPROVED: Offline Indicator */
+    .offline-indicator {
+        background: #FEF3C7;
+        border-left: 4px solid #F59E0B;
+        padding: var(--space-base) var(--space-lg);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-lg);
+        display: none;
+        animation: slideInRight 0.3s ease;
+    }
+    
+    .offline-indicator i {
+        margin-right: var(--space-sm);
+        color: #F59E0B;
+    }
+    
+    /* IMPROVED: Header Section */
+    .form-header {
+        text-align: center;
+        margin-bottom: var(--space-xl);
+    }
+    
+    .form-header-icon {
+        background: var(--primary-gradient);
+        width: 70px;
+        height: 70px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--space-base);
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+    }
+    
+    .form-header-icon:hover {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .form-header-icon i {
+        font-size: 2rem;
+        color: white;
+    }
+    
+    .form-header h2 {
+        color: var(--secondary);
+        margin-bottom: var(--space-xs);
+        font-size: 1.75rem;
+    }
+    
+    @media (max-width: 768px) {
+        .form-header h2 {
+            font-size: 1.5rem;
+        }
+    }
+    
+    .form-header p {
+        color: var(--gray);
+        font-size: 0.875rem;
+    }
+    
+    /* IMPROVED: Help text */
+    .help-text {
+        font-size: 0.7rem;
+        color: var(--gray);
+        margin-top: var(--space-xs);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+    
+    .help-text i {
+        font-size: 0.65rem;
+    }
+    
+    /* IMPROVED: Animation for form submission */
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* IMPROVED: Responsive adjustments */
+    @media (max-width: 480px) {
+        .form-card {
+            padding: var(--space-base);
+        }
+        
+        .outage-btn {
+            font-size: 0.8rem;
+            padding: var(--space-sm);
+        }
+        
+        .outage-btn i {
+            font-size: 1rem;
+        }
+        
+        .form-header-icon {
+            width: 55px;
+            height: 55px;
+        }
+        
+        .form-header-icon i {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="form-container">
+        <div class="form-card">
+            <!-- IMPROVED: Header with better styling -->
+            <div class="form-header">
+                <div class="form-header-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h2>Report an Outage</h2>
+                <p>Help your community by reporting utility disruptions</p>
+            </div>
+            
+            <!-- Offline Indicator -->
+            <div id="offlineIndicator" class="offline-indicator" style="display: none;">
+                <i class="fas fa-wifi-slash"></i>
+                <span>You are offline. Reports will be saved and submitted when you reconnect.</span>
+            </div>
+            
+            <form id="reportForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Outage Type Selection -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-bolt"></i> Outage Type
+                        <span class="required-star">*</span>
+                    </label>
+                    <div class="outage-type-buttons">
+                        <button type="button" class="outage-btn" data-type="electricity">
+                            <i class="fas fa-bolt"></i> Electricity
+                        </button>
+                        <button type="button" class="outage-btn" data-type="water">
+                            <i class="fas fa-tint"></i> Water Supply
+                        </button>
+                        <button type="button" class="outage-btn" data-type="network">
+                            <i class="fas fa-wifi"></i> Network
+                        </button>
+                    </div>
+                    <input type="hidden" name="outage_type" id="outageTypeInput" required>
+                </div>
+                
+                <!-- Location -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-map-marker-alt"></i> Location
+                        <span class="required-star">*</span>
+                    </label>
+                    <input type="text" name="location_text" id="locationText" class="form-control" 
+                           placeholder="e.g., Umudim Village, Abia State" required>
+                    <div class="location-hint">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Please provide your village/town and state for accurate tracking</span>
+                    </div>
+                </div>
+                
+                <!-- Description -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-align-left"></i> Description
+                        <span class="required-star">*</span>
+                    </label>
+                    <textarea name="description" id="description" class="form-control" rows="4" 
+                              placeholder="Describe what happened... How long has the outage lasted? Any additional details?" required></textarea>
+                </div>
+                
+                <!-- Photo Upload -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-camera"></i> Upload Photo
+                    </label>
+                    <div class="photo-upload-area" id="photoUploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Click or drag to upload a photo</p>
+                        <small>Supports: JPG, PNG (Max 5MB)</small>
+                        <input type="file" name="photo" id="photoInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div id="photoPreview" style="display: none; margin-top: var(--space-base);">
+                        <div class="photo-preview-container">
+                            <img id="previewImage" src="#" alt="Preview" class="preview-image">
+                            <button type="button" id="removePhoto" class="remove-photo-btn" aria-label="Remove photo">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Info -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-phone-alt"></i> Contact Information
+                    </label>
+                    <input type="text" name="contact_info" id="contactInfo" class="form-control" 
+                           placeholder="Phone number or email for status updates">
+                    <div class="help-text">
+                        <i class="fas fa-info-circle"></i>
+                        <span>We'll notify you when your report status changes</span>
+                    </div>
+                </div>
+                
+                <!-- Anonymous Option -->
+                <div class="form-group">
+                    <label class="checkbox-wrapper">
+                        <input type="checkbox" name="is_anonymous" id="isAnonymous">
+                        <span>Report anonymously</span>
+                    </label>
+                    <div id="anonymousNameGroup" style="display: none; margin-top: var(--space-md);">
+                        <input type="text" name="anonymous_name" id="anonymousName" class="form-control" 
+                               placeholder="Your display name (optional)">
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i> Submit Report
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Submitting your report...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== OUTAGE TYPE SELECTION ====================
+    const outageBtns = document.querySelectorAll('.outage-btn');
+    const outageTypeInput = document.getElementById('outageTypeInput');
+    
+    outageBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            outageBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            outageTypeInput.value = btn.dataset.type;
+        });
+    });
+    
+    // ==================== PHOTO UPLOAD ====================
+    const photoUploadArea = document.getElementById('photoUploadArea');
+    const photoInput = document.getElementById('photoInput');
+    const photoPreview = document.getElementById('photoPreview');
+    const previewImage = document.getElementById('previewImage');
+    const removePhoto = document.getElementById('removePhoto');
+    
+    photoUploadArea.addEventListener('click', () => photoInput.click());
+    
+    photoUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        photoUploadArea.style.borderColor = 'var(--primary)';
+        photoUploadArea.style.background = 'rgba(46, 125, 50, 0.05)';
+    });
+    
+    photoUploadArea.addEventListener('dragleave', () => {
+        photoUploadArea.style.borderColor = 'var(--gray-light)';
+        photoUploadArea.style.background = 'var(--gray-lighter)';
+    });
+    
+    photoUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handlePhotoFile(file);
+        }
+        photoUploadArea.style.borderColor = 'var(--gray-light)';
+        photoUploadArea.style.background = 'var(--gray-lighter)';
+    });
+    
+    photoInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) handlePhotoFile(e.target.files[0]);
+    });
+    
+    function handlePhotoFile(file) {
+        // Validate file size
+        if (file.size > 5 * 1024 * 1024) {
+            showMessage('File too large! Maximum 5MB.', 'error');
+            return;
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showMessage('Please upload an image file (JPG, PNG).', 'error');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            photoUploadArea.style.display = 'none';
+            photoPreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    removePhoto.addEventListener('click', () => {
+        photoInput.value = '';
+        photoUploadArea.style.display = 'block';
+        photoPreview.style.display = 'none';
+    });
+    
+    // ==================== ANONYMOUS CHECKBOX ====================
+    const isAnonymous = document.getElementById('isAnonymous');
+    const anonymousNameGroup = document.getElementById('anonymousNameGroup');
+    
+    isAnonymous.addEventListener('change', () => {
+        anonymousNameGroup.style.display = isAnonymous.checked ? 'block' : 'none';
+    });
+    
+    // ==================== OFFLINE DETECTION ====================
+    const offlineIndicator = document.getElementById('offlineIndicator');
+    
+    window.addEventListener('online', () => {
+        offlineIndicator.style.display = 'none';
+        showMessage('You are back online! You can now submit reports.', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+        offlineIndicator.style.display = 'block';
+        showMessage('You are offline. Please check your internet connection.', 'warning');
+    });
+    
+    // ==================== MESSAGE HELPER ====================
+    function showMessage(msg, type) {
+        const container = document.getElementById('messagesContainer');
+        if (!container) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.style.animation = 'slideInRight 0.3s ease';
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${msg}</span>
+            </div>
+            <button class="close-message" onclick="this.closest('.message').remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(messageDiv);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (messageDiv && messageDiv.parentElement) {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateX(100px)';
+                setTimeout(() => {
+                    if (messageDiv.parentElement) messageDiv.remove();
+                }, 300);
+            }
+        }, 5000);
+    }
+    
+    // ==================== FORM SUBMISSION ====================
+    const reportForm = document.getElementById('reportForm');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Helper to get CSRF token
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+    
+    reportForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Validate required fields
+        if (!outageTypeInput.value) {
+            showMessage('Please select an outage type', 'error');
+            outageBtns[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        
+        const locationText = document.getElementById('locationText').value.trim();
+        if (!locationText) {
+            showMessage('Please enter a location', 'error');
+            document.getElementById('locationText').focus();
+            return;
+        }
+        
+        const description = document.getElementById('description').value.trim();
+        if (!description) {
+            showMessage('Please provide a description', 'error');
+            document.getElementById('description').focus();
+            return;
+        }
+        
+        // Check if offline
+        if (!navigator.onLine) {
+            showMessage('You are offline. Please connect to the internet to submit reports.', 'error');
+            return;
+        }
+        
+        // Online submission
+        loadingOverlay.style.display = 'flex';
+        submitBtn.disabled = true;
+        
+        const formData = new FormData(reportForm);
+        
+        try {
+            const response = await fetch("{% url 'reports:submit_report_ajax' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showMessage(data.message || 'Report submitted successfully!', 'success');
+                
+                // Reset form with animation
+                reportForm.reset();
+                outageBtns.forEach(b => b.classList.remove('active'));
+                outageTypeInput.value = '';
+                photoUploadArea.style.display = 'block';
+                photoPreview.style.display = 'none';
+                anonymousNameGroup.style.display = 'none';
+                
+                // Redirect after delay
+                setTimeout(() => {
+                    if (data.tracking_url) {
+                        window.location.href = data.tracking_url;
+                    } else {
+                        loadingOverlay.style.display = 'none';
+                        submitBtn.disabled = false;
+                    }
+                }, 2000);
+            } else {
+                showMessage(data.error || 'Submission failed. Please try again.', 'error');
+                loadingOverlay.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            showMessage('Network error. Please check your connection and try again.', 'error');
+            loadingOverlay.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    });
+    
+    // ==================== INPUT VALIDATION ON TYPING ====================
+    const locationInput = document.getElementById('locationText');
+    const descriptionInput = document.getElementById('description');
+    
+    locationInput.addEventListener('input', () => {
+        if (locationInput.value.trim()) {
+            locationInput.style.borderColor = 'var(--success)';
+        } else {
+            locationInput.style.borderColor = 'var(--gray-light)';
+        }
+    });
+    
+    descriptionInput.addEventListener('input', () => {
+        if (descriptionInput.value.trim()) {
+            descriptionInput.style.borderColor = 'var(--success)';
+        } else {
+            descriptionInput.style.borderColor = 'var(--gray-light)';
+        }
+    });
+</script>
+{% endblock %}

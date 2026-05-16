@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2E7D32">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GridWatch">
+    <link rel="apple-touch-icon" href="/static/images/icons/icon-152x152.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <title>GridWatch - {% block title %}Monitor Outages{% endblock %}</title>
+    
+    <!-- Google Fonts - Poppins + Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/fav icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/fav icon.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/fav icon.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/fav icon.png' %}">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="{% url 'home' %}" class="logo">
+                <i class="fas fa-eye"></i>
+                <span>GridWatch</span>
+            </a>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="nav-menu" id="navMenu">
+                <button class="close-menu-btn" id="closeMenuBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+                <a href="{% url 'home' %}" class="nav-link">Home</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#about" class="nav-link">About</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'reports:dashboard' %}" class="nav-link">Dashboard</a>
+                    <a href="{% url 'accounts:logout' %}" class="nav-link btn-outline-light">Logout</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="nav-link">Login</a>
+                    <a href="{% url 'accounts:register' %}" class="nav-link btn-outline-light">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Flash Messages -->
+    <div class="messages-container" id="messagesContainer">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    <div class="message-content">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% elif message.tags == 'info' %}
+                            <i class="fas fa-info-circle"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                    <button class="close-message" onclick="this.closest('.message').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <footer class="footer">
+        <p>&copy; 2026 GridWatch | Watch. Report. Restore.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+            <i class="fas fa-eye"></i> Monitoring outages for rural communities
+        </p>
+    </footer>
+    
+    <!-- PWA Scripts -->
+    <script src="{% static 'js/offline-queue.js' %}"></script>
+    {% include 'includes/pwa_install_prompt.html' %}
+    
+    <!-- Main JavaScript -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <script>
+        // Mobile menu toggle
+        const mobileBtn = document.getElementById('mobileMenuBtn');
+        const closeBtn = document.getElementById('closeMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        
+        if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+                navMenu.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        }
+        
+        // Close menu when clicking a link (mobile)
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    navMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        });
+        
+        // Auto-dismiss messages after 7 seconds
+        const messages = document.querySelectorAll('.message');
+        messages.forEach(message => {
+            setTimeout(() => {
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    if (message.parentElement) {
+                        message.remove();
+                    }
+                }, 300);
+            }, 7000);
+        });
+        
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/serviceworker.js')
+                    .then(registration => {
+                        console.log('[PWA] ServiceWorker registered:', registration.scope);
+                        
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showUpdateNotification();
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('[PWA] ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+        
+        function showUpdateNotification() {
+            const toast = document.createElement('div');
+            toast.className = 'message message-info';
+            toast.innerHTML = `
+                <div class="message-content">
+                    <i class="fas fa-download"></i>
+                    <span>New version available! Refresh to update.</span>
+                </div>
+                <button onclick="location.reload()" style="background: none; border: none; color: white; cursor: pointer;">Refresh</button>
+                <button class="close-message" onclick="this.closest('.message').remove()">&times;</button>
+            `;
+            const container = document.querySelector('.messages-container');
+            if (container) {
+                container.appendChild(toast);
+                setTimeout(() => {
+                    if (toast.parentElement) toast.remove();
+                }, 10000);
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

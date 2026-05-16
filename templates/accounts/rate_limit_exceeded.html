@@ -1,0 +1,203 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}Too Many Attempts - GridWatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .error-card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 20px 35px -10px rgba(0,0,0,0.1);
+        animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .error-icon {
+        width: 80px;
+        height: 80px;
+        background: #FEF3C7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+    
+    .error-icon i {
+        font-size: 2.5rem;
+        color: #F59E0B;
+    }
+    
+    .error-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .error-message {
+        color: var(--gray);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+    
+    .countdown {
+        background: #F9FAFB;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .countdown-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary);
+        font-family: monospace;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .btn-support {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: transparent;
+        border: 2px solid var(--gray-light);
+        color: var(--secondary);
+        text-decoration: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-support:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        
+        <h1 class="error-title">Too Many Attempts</h1>
+        
+        <p class="error-message">
+            You've made too many {{ action_display|default:"this action" }} attempts.
+            Please wait before trying again.
+        </p>
+        
+        {% if minutes_remaining %}
+        <div class="countdown">
+            <p style="margin-bottom: 0.5rem; font-size: 0.85rem;">You can try again in:</p>
+            <div class="countdown-number" id="countdownTimer">
+                {{ minutes_remaining }} minute{{ minutes_remaining|pluralize }}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="action-buttons">
+            <a href="javascript:history.back()" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </a>
+            <a href="{% url 'home' %}" class="btn-support">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+        
+        <p style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--gray);">
+            <i class="fas fa-info-circle"></i>
+            For security reasons, we limit the number of attempts.
+            Please contact support if you need assistance.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Countdown timer if minutes_remaining is provided
+    {% if minutes_remaining %}
+    let minutes = {{ minutes_remaining }};
+    let seconds = 0;
+    
+    function updateCountdown() {
+        const countdownElement = document.getElementById('countdownTimer');
+        if (countdownElement) {
+            if (minutes > 0) {
+                countdownElement.textContent = `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+            } else if (seconds > 0) {
+                countdownElement.textContent = `${seconds} second${seconds !== 1 ? 's' : ''}`;
+            } else {
+                countdownElement.textContent = 'Now available';
+                // Refresh the page after countdown completes
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        }
+        
+        if (minutes === 0 && seconds === 0) {
+            return;
+        }
+        
+        if (seconds === 0) {
+            minutes--;
+            seconds = 59;
+        } else {
+            seconds--;
+        }
+        
+        setTimeout(updateCountdown, 1000);
+    }
+    
+    updateCountdown();
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,1217 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Community Feed{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Feed Container with better spacing */
+    .feed-container {
+        max-width: 900px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    /* IMPROVED: Filters Bar - Responsive */
+    .filters-bar {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-base);
+        margin-bottom: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+        position: sticky;
+        top: var(--top-navbar-height);
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    @media (max-width: 768px) {
+        .filters-bar {
+            padding: var(--space-sm);
+            margin-bottom: var(--space-base);
+        }
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
+    }
+    
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+    
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 2rem;
+        background: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-base);
+        min-height: 40px;
+    }
+    
+    @media (max-width: 640px) {
+        .filter-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            min-height: 36px;
+        }
+    }
+    
+    .filter-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    .filter-btn.active {
+        background: var(--primary-gradient);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* IMPROVED: Feed Post Cards */
+    .feed-post {
+        background: white;
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-base);
+        padding: var(--space-lg);
+        transition: var(--transition-base);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        animation: fadeInUp 0.4s ease;
+        position: relative;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .feed-post:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .feed-post {
+            padding: var(--space-base);
+            margin-bottom: var(--space-sm);
+        }
+    }
+    
+    /* IMPROVED: Post Header - Save button now in top right corner */
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--space-base);
+        margin-bottom: var(--space-base);
+        padding-bottom: var(--space-base);
+        border-bottom: 2px solid var(--gray-light);
+    }
+    
+    .post-author {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        flex: 1;
+    }
+    
+    .author-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+        }
+    }
+    
+    .author-avatar i {
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .author-info {
+        flex: 1;
+    }
+    
+    .author-name {
+        font-weight: 700;
+        color: var(--secondary);
+        display: block;
+        font-size: 0.95rem;
+    }
+    
+    .post-time {
+        font-size: 0.7rem;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+    }
+    
+    /* IMPROVED: Save Button - Positioned in top right */
+    .save-btn-wrapper {
+        position: relative;
+    }
+    
+    .save-btn {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: var(--space-sm);
+        border-radius: 50%;
+        transition: var(--transition-base);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .save-btn {
+            width: 36px;
+            height: 36px;
+        }
+    }
+    
+    .save-btn:hover {
+        background: rgba(46, 125, 50, 0.1);
+        transform: scale(1.1);
+    }
+    
+    .save-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .save-btn.saved {
+        color: #f59e0b;
+    }
+    
+    .save-btn.saved i {
+        font-weight: 900;
+    }
+    
+    /* IMPROVED: Post Badges - Now below the save button */
+    .post-badges {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: var(--space-sm);
+        justify-content: flex-end;
+    }
+    
+    .post-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .post-type-electricity {
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        color: #D97706;
+    }
+    
+    .post-type-water {
+        background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+        color: #2563EB;
+    }
+    
+    .post-type-network {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        color: #059669;
+    }
+    
+    .post-status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        border-left: 2px solid #F59E0B;
+    }
+    
+    .post-status-verified {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563EB;
+        border-left: 2px solid #3B82F6;
+    }
+    
+    .post-status-in_progress {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7C3AED;
+        border-left: 2px solid #8B5CF6;
+    }
+    
+    .post-status-resolved {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border-left: 2px solid #10B981;
+    }
+    
+    /* IMPROVED: Post Body */
+    .post-body {
+        margin-bottom: var(--space-base);
+    }
+    
+    .post-location {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
+        font-size: 0.9rem;
+        color: var(--secondary);
+        font-weight: 500;
+    }
+    
+    .post-location i {
+        color: var(--primary);
+    }
+    
+    .post-description {
+        color: var(--gray);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: var(--space-base);
+    }
+    
+    .post-photo {
+        margin-top: var(--space-base);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        cursor: pointer;
+        transition: var(--transition-base);
+    }
+    
+    .post-photo img {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        transition: var(--transition-base);
+    }
+    
+    .post-photo:hover img {
+        transform: scale(1.02);
+    }
+    
+    /* IMPROVED: Post Actions - Now all on one row */
+    .post-actions {
+        display: flex;
+        gap: var(--space-base);
+        flex-wrap: nowrap;
+        padding-top: var(--space-base);
+        border-top: 1px solid var(--gray-light);
+        justify-content: space-around;
+    }
+    
+    @media (max-width: 640px) {
+        .post-actions {
+            gap: var(--space-sm);
+        }
+    }
+    
+    .action-btn {
+        background: none;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        cursor: pointer;
+        transition: var(--transition-base);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--gray);
+        min-height: 40px;
+        flex: 1;
+        justify-content: center;
+    }
+    
+    @media (max-width: 640px) {
+        .action-btn {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.7rem;
+            gap: var(--space-xs);
+        }
+    }
+    
+    .action-btn:hover {
+        background: rgba(46, 125, 50, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .action-btn:active {
+        transform: translateY(0);
+    }
+    
+    .action-btn.active {
+        color: var(--primary);
+    }
+    
+    .action-btn i {
+        font-size: 1rem;
+    }
+    
+    .action-count {
+        font-weight: 700;
+    }
+    
+    /* IMPROVED: Comments Section */
+    .comments-section {
+        display: none;
+        margin-top: var(--space-base);
+        padding-top: var(--space-base);
+        border-top: 1px solid var(--gray-light);
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .comments-section.show {
+        display: block;
+    }
+    
+    .comment-form {
+        display: flex;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-base);
+    }
+    
+    .comment-input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        resize: vertical;
+        font-family: inherit;
+    }
+    
+    .comment-input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    
+    .comment-submit {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: 2rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: var(--transition-base);
+        min-height: 44px;
+    }
+    
+    .comment-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .comment-submit:active {
+        transform: translateY(0);
+    }
+    
+    .comment-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .comments-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .comment-item {
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid var(--gray-light);
+    }
+    
+    .comment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .comment-author {
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: var(--secondary);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: 0.25rem;
+    }
+    
+    .comment-text {
+        font-size: 0.85rem;
+        color: var(--gray);
+        line-height: 1.4;
+        margin-left: var(--space-base);
+    }
+    
+    .comment-time {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        margin-left: var(--space-base);
+    }
+    
+    /* IMPROVED: Loading States */
+    .loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--gray-light);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-trigger {
+        text-align: center;
+        padding: var(--space-xl);
+        display: none;
+    }
+    
+    .loading-trigger.show {
+        display: block;
+    }
+    
+    .loading-trigger .loading-spinner {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto var(--space-base);
+    }
+    
+    /* IMPROVED: Empty Feed State */
+    .empty-feed {
+        text-align: center;
+        padding: var(--space-2xl) var(--space-lg);
+        background: white;
+        border-radius: var(--radius-lg);
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    .empty-feed i {
+        font-size: 5rem;
+        background: linear-gradient(135deg, var(--gray-light), #e2e8f0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: var(--space-base);
+    }
+    
+    .empty-feed h3 {
+        color: var(--secondary);
+        margin-bottom: var(--space-sm);
+    }
+    
+    .empty-feed p {
+        color: var(--gray);
+        margin-bottom: var(--space-lg);
+    }
+    
+    /* IMPROVED: End of Feed */
+    .end-of-feed {
+        text-align: center;
+        padding: var(--space-xl);
+        color: var(--gray);
+        display: none;
+    }
+    
+    .end-of-feed.show {
+        display: block;
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    .end-of-feed i {
+        font-size: 3rem;
+        color: var(--success);
+        margin-bottom: var(--space-base);
+    }
+    
+    /* IMPROVED: Refresh Prompt */
+    .refresh-prompt {
+        text-align: center;
+        padding: var(--space-base);
+        margin-top: var(--space-base);
+        background: linear-gradient(135deg, rgba(46, 125, 50, 0.05), rgba(46, 125, 50, 0.02));
+        border-radius: var(--radius-lg);
+        display: none;
+        animation: slideDown 0.3s ease;
+    }
+    
+    .refresh-prompt.show {
+        display: block;
+    }
+    
+    .refresh-prompt i {
+        color: var(--primary);
+        margin-right: var(--space-sm);
+    }
+    
+    .refresh-prompt button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        cursor: pointer;
+        margin-top: var(--space-sm);
+        transition: var(--transition-base);
+        min-height: 40px;
+    }
+    
+    .refresh-prompt button:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    /* IMPROVED: Button Styles */
+    .btn {
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        text-decoration: none;
+        min-height: 40px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="feed-container">
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div class="filter-group">
+                <button class="filter-btn {% if current_type == 'all' %}active{% endif %}" data-filter="type" data-value="all">All Types</button>
+                <button class="filter-btn {% if current_type == 'electricity' %}active{% endif %}" data-filter="type" data-value="electricity">⚡ Electricity</button>
+                <button class="filter-btn {% if current_type == 'water' %}active{% endif %}" data-filter="type" data-value="water">💧 Water</button>
+                <button class="filter-btn {% if current_type == 'network' %}active{% endif %}" data-filter="type" data-value="network">📡 Network</button>
+            </div>
+            <div class="filter-group">
+                <button class="filter-btn {% if current_sort == 'latest' %}active{% endif %}" data-filter="sort" data-value="latest">Latest</button>
+                <button class="filter-btn {% if current_sort == 'most_urgent' %}active{% endif %}" data-filter="sort" data-value="most_urgent">Most Urgent</button>
+                <button class="filter-btn {% if current_sort == 'most_commented' %}active{% endif %}" data-filter="sort" data-value="most_commented">Most Discussed</button>
+            </div>
+        </div>
+        
+        <!-- Feed Posts Container -->
+        <div id="feedPostsContainer">
+            {% include 'reports/partials/feed_posts_partial.html' %}
+        </div>
+        
+        <!-- Loading Trigger -->
+        <div class="loading-trigger" id="loadingTrigger">
+            <div class="loading-spinner"></div>
+            <p>Loading more posts...</p>
+        </div>
+        
+        <!-- End of Feed -->
+        <div class="end-of-feed" id="endOfFeed">
+            <i class="fas fa-check-circle"></i>
+            <p>You've seen all posts!</p>
+        </div>
+        
+        <!-- Refresh Prompt -->
+        <div class="refresh-prompt" id="refreshPrompt">
+            <i class="fas fa-sync-alt"></i>
+            <p>New posts available!</p>
+            <button onclick="loadNewPosts()">Refresh to see new posts</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== INFINITE SCROLL ====================
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+let lastScrollTime = 0;
+let totalPostsLoaded = 0;
+const POSTS_PER_PAGE = 15;
+
+// Get initial hasNext from template
+let hasNextPage = {{ has_next|lower }};
+
+function getCurrentFilters() {
+    const currentUrl = new URL(window.location.href);
+    return {
+        type: currentUrl.searchParams.get('type') || 'all',
+        sort: currentUrl.searchParams.get('sort') || 'latest',
+        status: currentUrl.searchParams.get('status') || 'all'
+    };
+}
+
+async function loadMorePosts() {
+    // Don't load if already loading, no more pages, or no next page
+    if (isLoading || !hasMore || !hasNextPage) return;
+    
+    isLoading = true;
+    const loadingTrigger = document.getElementById('loadingTrigger');
+    if (loadingTrigger) loadingTrigger.classList.add('show');
+    
+    const nextPage = currentPage + 1;
+    const filters = getCurrentFilters();
+    
+    try {
+        const response = await fetch(`/reports/api/load-more/?page=${nextPage}&type=${filters.type}&sort=${filters.sort}&status=${filters.status}`);
+        const html = await response.text();
+        
+        if (html.trim()) {
+            const container = document.getElementById('feedPostsContainer');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const newPosts = tempDiv.querySelectorAll('.feed-post');
+            const newHasNext = tempDiv.querySelector('.end-of-feed-message.load-more') !== null;
+            
+            if (newPosts.length > 0) {
+                newPosts.forEach(post => {
+                    const reportId = post.dataset.reportId;
+                    const existingPost = container.querySelector(`.feed-post[data-report-id="${reportId}"]`);
+                    if (!existingPost) {
+                        container.appendChild(post);
+                    }
+                });
+                currentPage = nextPage;
+                totalPostsLoaded += newPosts.length;
+                
+                // Re-initialize event listeners for new posts
+                initializeNewPostListeners();
+                
+                // Update hasNextPage based on response
+                hasNextPage = newHasNext;
+                
+                if (!hasNextPage) {
+                    hasMore = false;
+                    // Remove the load more message if it exists
+                    const loadMoreMsg = document.getElementById('loadMoreMessage');
+                    if (loadMoreMsg) loadMoreMsg.remove();
+                }
+            } else {
+                hasMore = false;
+                hasNextPage = false;
+            }
+        } else {
+            hasMore = false;
+            hasNextPage = false;
+        }
+    } catch (error) {
+        console.error('Error loading more posts:', error);
+        showToast('Failed to load more posts. Please try again.', 'error');
+    } finally {
+        if (loadingTrigger) loadingTrigger.classList.remove('show');
+        isLoading = false;
+    }
+}
+    
+    // Throttled scroll listener
+    window.addEventListener('scroll', function() {
+        const now = Date.now();
+        if (now - lastScrollTime < 500) return;
+        lastScrollTime = now;
+        
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const threshold = document.body.scrollHeight - 800;
+        
+        if (scrollPosition >= threshold && hasMore && !isLoading) {
+            loadMorePosts();
+        }
+    });
+    
+    // ==================== SAVE POST FUNCTIONALITY ====================
+    async function savePost(reportId, btn) {
+        const isSaved = btn.classList.contains('saved');
+        const action = isSaved ? 'unsave' : 'save';
+        
+        try {
+            const response = await fetch(`/reports/api/save-post/${reportId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ action: action })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.is_saved) {
+                    btn.classList.add('saved');
+                    btn.title = 'Unsave this post';
+                } else {
+                    btn.classList.remove('saved');
+                    btn.title = 'Save this post';
+                }
+                showToast(data.is_saved ? 'Post saved!' : 'Post removed from saved', 'success');
+            }
+        } catch (error) {
+            console.error('Error saving post:', error);
+            showToast('Something went wrong', 'error');
+        }
+    }
+    
+    // ==================== LOAD COMMENTS ====================
+    async function loadComments(reportId, commentsList) {
+        try {
+            const response = await fetch(`/reports/api/comments/${reportId}/`);
+            const data = await response.json();
+            
+            if (data.success && data.comments) {
+                if (data.comments.length === 0) {
+                    commentsList.innerHTML = '<div class="empty-state" style="padding: 1rem; text-align: center; color: var(--gray);"><i class="fas fa-comments"></i><p>No comments yet. Be the first to comment!</p></div>';
+                } else {
+                    commentsList.innerHTML = data.comments.map(comment => `
+                        <div class="comment-item">
+                            <div class="comment-author">
+                                <i class="fas fa-user-circle"></i>
+                                <span>${escapeHtml(comment.user_name)}</span>
+                            </div>
+                            <div class="comment-text">${escapeHtml(comment.comment)}</div>
+                            <div class="comment-time">${comment.created_at_relative || 'Just now'}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading comments:', error);
+            commentsList.innerHTML = '<div class="empty-state" style="padding: 1rem; text-align: center; color: var(--danger);"><i class="fas fa-exclamation-circle"></i><p>Failed to load comments</p></div>';
+        }
+    }
+    
+    // ==================== INITIALIZE EVENT LISTENERS ====================
+    function initializeNewPostListeners() {
+        // Save buttons
+        document.querySelectorAll('.save-btn').forEach(btn => {
+            if (!btn.hasListener) {
+                btn.hasListener = true;
+                const reportId = btn.dataset.reportId;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    savePost(reportId, btn);
+                });
+            }
+        });
+        
+        // Reaction buttons
+        document.querySelectorAll('.reaction-btn').forEach(btn => {
+            if (!btn.hasListener) {
+                btn.hasListener = true;
+                btn.addEventListener('click', reactionClickHandler);
+            }
+        });
+        
+        // Comment toggle buttons
+        document.querySelectorAll('.comment-toggle').forEach(btn => {
+            if (!btn.hasListener) {
+                btn.hasListener = true;
+                btn.addEventListener('click', commentToggleHandler);
+            }
+        });
+        
+        // Comment submit buttons
+        document.querySelectorAll('.comment-submit').forEach(btn => {
+            if (!btn.hasListener) {
+                btn.hasListener = true;
+                btn.addEventListener('click', commentSubmitHandler);
+            }
+        });
+        
+        // Comment input enter key
+        document.querySelectorAll('.comment-input').forEach(input => {
+            if (!input.hasListener) {
+                input.hasListener = true;
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        const submitBtn = input.closest('.comment-form').querySelector('.comment-submit');
+                        if (submitBtn) submitBtn.click();
+                    }
+                });
+            }
+        });
+    }
+    
+    // Reaction click handler
+    async function reactionClickHandler() {
+        const btn = this;
+        const post = btn.closest('.feed-post');
+        const reportId = post.dataset.reportId;
+        const reactionType = btn.dataset.reaction;
+        const countSpan = btn.querySelector('.action-count');
+        
+        const originalText = countSpan.textContent;
+        countSpan.innerHTML = '<div class="loading-spinner" style="width: 12px; height: 12px;"></div>';
+        
+        try {
+            const response = await fetch(`/reports/api/reaction/${reportId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ reaction_type: reactionType })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const urgentBtn = post.querySelector('.reaction-btn[data-reaction="urgent"]');
+                const helpfulBtn = post.querySelector('.reaction-btn[data-reaction="helpful"]');
+                const urgentCountSpan = urgentBtn?.querySelector('.action-count');
+                const helpfulCountSpan = helpfulBtn?.querySelector('.action-count');
+                
+                if (urgentCountSpan) urgentCountSpan.textContent = data.urgent_count || 0;
+                if (helpfulCountSpan) helpfulCountSpan.textContent = data.helpful_count || 0;
+                
+                const otherBtn = reactionType === 'urgent' ? helpfulBtn : urgentBtn;
+                
+                if (data.action === 'removed') {
+                    btn.classList.remove('active');
+                } else if (data.action === 'added' || data.action === 'updated') {
+                    btn.classList.add('active');
+                    if (otherBtn) otherBtn.classList.remove('active');
+                }
+                
+                let message = '';
+                if (data.action === 'added') message = `${reactionType.charAt(0).toUpperCase() + reactionType.slice(1)} reaction added!`;
+                else if (data.action === 'updated') message = 'Reaction updated!';
+                else message = 'Reaction removed';
+                showToast(message, 'info');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            countSpan.textContent = originalText;
+            showToast('Something went wrong', 'error');
+        }
+    }
+    
+    // Comment toggle handler
+    async function commentToggleHandler() {
+        const post = this.closest('.feed-post');
+        const commentsSection = post.querySelector('.comments-section');
+        const commentsList = post.querySelector('.comments-list');
+        const reportId = post.dataset.reportId;
+        
+        const isShowing = commentsSection.classList.toggle('show');
+        
+        if (isShowing && (!commentsList.querySelector('.comment-item') && !commentsList.querySelector('.empty-state'))) {
+            commentsList.innerHTML = '<div style="text-align: center; padding: 1rem;"><div class="loading-spinner"></div></div>';
+            await loadComments(reportId, commentsList);
+        }
+    }
+    
+    // Comment submit handler
+    async function commentSubmitHandler() {
+        const btn = this;
+        const post = btn.closest('.feed-post');
+        const commentInput = post.querySelector('.comment-input');
+        const commentText = commentInput.value.trim();
+        const reportId = post.dataset.reportId;
+        const commentsList = post.querySelector('.comments-list');
+        const commentCountSpan = post.querySelector('.comment-count');
+        
+        if (!commentText) {
+            showToast('Please enter a comment', 'warning');
+            return;
+        }
+        
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch(`/reports/api/comment/${reportId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ comment: commentText })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                commentInput.value = '';
+                if (commentCountSpan) commentCountSpan.textContent = data.comment_count;
+                await loadComments(reportId, commentsList);
+                showToast('Comment added!', 'success');
+            } else {
+                showToast(data.error || 'Failed to add comment', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Something went wrong', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+    
+    // ==================== UTILITIES ====================
+    function getCSRFToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken' + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCSRFToken();
+    
+    function showToast(message, type) {
+        const container = document.getElementById('messagesContainer');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `message message-${type}`;
+        toast.innerHTML = `
+            <div class="message-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${escapeHtml(message)}</span>
+            </div>
+            <button class="close-message" onclick="this.closest('.message').remove()">&times;</button>
+        `;
+        container.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 5000);
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // ==================== INITIALIZE REACTION COUNTS ====================
+    async function initializeReactionCounts() {
+        const posts = document.querySelectorAll('.feed-post');
+        
+        for (const post of posts) {
+            const reportId = post.dataset.reportId;
+            
+            try {
+                const urgentBtn = post.querySelector('.reaction-btn[data-reaction="urgent"]');
+                const helpfulBtn = post.querySelector('.reaction-btn[data-reaction="helpful"]');
+                
+                const reactionResponse = await fetch(`/reports/api/reactions/counts/${reportId}/`);
+                
+                if (reactionResponse.ok) {
+                    const data = await reactionResponse.json();
+                    if (data.success) {
+                        if (urgentBtn) {
+                            const urgentCountSpan = urgentBtn.querySelector('.action-count');
+                            if (urgentCountSpan) urgentCountSpan.textContent = data.urgent_count || 0;
+                        }
+                        if (helpfulBtn) {
+                            const helpfulCountSpan = helpfulBtn.querySelector('.action-count');
+                            if (helpfulCountSpan) helpfulCountSpan.textContent = data.helpful_count || 0;
+                        }
+                        if (data.user_reaction === 'urgent' && urgentBtn) {
+                            urgentBtn.classList.add('active');
+                        } else if (data.user_reaction === 'helpful' && helpfulBtn) {
+                            helpfulBtn.classList.add('active');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing reactions for post', reportId, error);
+            }
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Count initial posts
+        totalPostsLoaded = document.querySelectorAll('.feed-post').length;
+        
+        // Check if we need to show end of feed
+        if (totalPostsLoaded < POSTS_PER_PAGE) {
+            hasMore = false;
+        }
+        
+        initializeNewPostListeners();
+        initializeReactionCounts();
+    });
+    
+    // Refresh on filter change (page reload is fine for filters)
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filterType = btn.dataset.filter;
+            const filterValue = btn.dataset.value;
+            const currentUrl = new URL(window.location.href);
+            
+            if (filterType === 'type') {
+                currentUrl.searchParams.set('type', filterValue);
+            } else if (filterType === 'sort') {
+                currentUrl.searchParams.set('sort', filterValue);
+            }
+            
+            currentUrl.searchParams.set('page', '1');
+            window.location.href = currentUrl.toString();
+        });
+    });
+    
+    function loadNewPosts() {
+        window.location.reload();
+    }
+
+
+
+
+    // Add this to your existing JavaScript
+
+function updateEndOfFeedMessage(hasNext) {
+    const loadMoreMessage = document.getElementById('loadMoreMessage');
+    const caughtUpMessage = document.getElementById('caughtUpMessage');
+    
+    if (hasNext) {
+        if (loadMoreMessage) loadMoreMessage.style.display = 'block';
+        if (caughtUpMessage) caughtUpMessage.style.display = 'none';
+    } else {
+        if (loadMoreMessage) loadMoreMessage.style.display = 'none';
+        if (caughtUpMessage) caughtUpMessage.style.display = 'block';
+    }
+}
+
+// Modify the loadMorePosts function to update the message after loading
+async function loadMorePosts() {
+    if (isLoading || !hasMore || !hasNextPage) return;
+    
+    isLoading = true;
+    const loadingTrigger = document.getElementById('loadingTrigger');
+    loadingTrigger.classList.add('show');
+    
+    const nextPage = currentPage + 1;
+    const filters = getCurrentFilters();
+    
+    try {
+        const response = await fetch(`/reports/api/load-more/?page=${nextPage}&type=${filters.type}&sort=${filters.sort}&status=${filters.status}`);
+        const html = await response.text();
+        
+        if (html.trim()) {
+            const container = document.getElementById('feedPostsContainer');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const newPosts = tempDiv.querySelectorAll('.feed-post');
+            const hasNextFromResponse = tempDiv.querySelector('#loadMoreMessage') !== null;
+            
+            if (newPosts.length > 0) {
+                newPosts.forEach(post => {
+                    const reportId = post.dataset.reportId;
+                    const existingPost = container.querySelector(`.feed-post[data-report-id="${reportId}"]`);
+                    if (!existingPost) {
+                        container.appendChild(post);
+                    }
+                });
+                currentPage = nextPage;
+                totalPostsLoaded += newPosts.length;
+                
+                initializeNewPostListeners();
+                
+                if (newPosts.length < POSTS_PER_PAGE || !hasNextFromResponse) {
+                    hasMore = false;
+                    updateEndOfFeedMessage(false);
+                } else {
+                    updateEndOfFeedMessage(true);
+                }
+            } else {
+                hasMore = false;
+                updateEndOfFeedMessage(false);
+            }
+        } else {
+            hasMore = false;
+            updateEndOfFeedMessage(false);
+        }
+    } catch (error) {
+        console.error('Error loading more posts:', error);
+        showToast('Failed to load more posts. Please try again.', 'error');
+    } finally {
+        loadingTrigger.classList.remove('show');
+        isLoading = false;
+    }
+}
+
+// Remove the old endOfFeed and refreshPrompt elements from HTML
+// They are replaced by the new end-of-feed-message
+</script>
+{% endblock %}

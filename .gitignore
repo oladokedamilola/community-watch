@@ -1,0 +1,433 @@
+# ============================================
+# Python
+# ============================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+test-reports/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# Pydantic
+.pydantic_computed/
+
+# ============================================
+# Django
+# ============================================
+
+# Django logs
+*.log
+*.log.*
+django.log
+
+# Local database (SQLite)
+*.sqlite3
+*.db
+db.sqlite3
+db.sqlite3-journal
+gridwatch_project/db.sqlite3
+accounts/migrations/*.py
+!accounts/migrations/__init__.py
+reports/migrations/*.py
+!reports/migrations/__init__.py
+
+# Django media files
+media/
+media/*
+!media/.gitkeep
+
+# Static files (when collected)
+staticfiles/
+staticfiles/*
+!staticfiles/.gitkeep
+
+# Django local settings
+local_settings.py
+gridwatch_project/local_settings.py
+
+# ============================================
+# Environment & Secrets
+# ============================================
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+.env.test
+
+# Secret keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.json
+secrets.py
+config.json
+. secrets/
+
+# OAuth credentials
+oauth_credentials.json
+client_secret.json
+client_secrets.json
+credentials.json
+
+# ============================================
+# Virtual Environment
+# ============================================
+
+# Virtual environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.env/
+.venv/
+.venv.bak/
+pythonenv*
+virtualenv/
+
+# Virtual environment files
+pyvenv.cfg
+pip-selfcheck.json
+
+# ============================================
+# IDE / Editor Files
+# ============================================
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+.sublime/
+
+# Atom
+.atom/
+*.atom
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Eclipse
+.project
+.classpath
+.settings/
+*.pydevproject
+
+# ============================================
+# Operating System Files
+# ============================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+*.dmg
+*.app
+
+# Linux
+.directory
+*.orig
+*~
+.dmrc
+
+# ============================================
+# Logs & Databases
+# ============================================
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Database backups
+*.bak
+*.backup
+*.sql
+*.sql.zip
+backups/
+
+# ============================================
+# Frontend / Static Build
+# ============================================
+
+# Node modules (if using Node for frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+webpack-stats.json
+
+# CSS / JS build outputs
+dist/
+build/
+out/
+*.min.css
+*.min.js
+*.map
+
+# ============================================
+# Django Extensions
+# ============================================
+
+# Django debug toolbar
+django_debug_toolbar/
+debug_toolbar/
+
+# Django extensions
+.django_extension/
+profile.svg
+profile.json
+
+# ============================================
+# Celery / Task Queue
+# ============================================
+
+celerybeat-schedule
+celerybeat.pid
+celeryd.pid
+celeryev.pid
+*.pid
+*.pid.lock
+
+# ============================================
+# Docker
+# ============================================
+
+docker-compose.override.yml
+docker-compose.*.yml
+.dockerignore
+Dockerfile.*
+*.dockerfile
+
+# ============================================
+# Geo / Map Cache
+# ============================================
+
+# Leaflet tile cache
+tile_cache/
+tiles/
+*.tile
+*.pbf
+*.mbtiles
+
+# ============================================
+# Temporary Files
+# ============================================
+
+*.tmp
+*.temp
+*.cache
+.cache/
+tmp/
+temp/
+*.swp
+*.swo
+*~
+
+# ============================================
+# Backup Files
+# ============================================
+
+*.backup
+*.old
+*.orig
+*.rej
+
+# ============================================
+# SSL Certificates (for local development)
+# ============================================
+
+*.cert
+*.key
+*.csr
+*.pem
+cert.pem
+key.pem
+
+# ============================================
+# PWA / Service Worker
+# ============================================
+
+# Service worker cache
+sw_cache/
+service-worker.js.map
+manifest.json.map
+
+# ============================================
+# Documentation
+# ============================================
+
+docs/_build/
+docs/build/
+site/
+_site/
+
+# ============================================
+# Miscellaneous
+# ============================================
+
+# Google Cloud Platform
+*.json.gcloud
+.gcloud/
+
+# AWS
+.aws/
+
+# Sentry
+.sentry-native/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest
+.pytest_cache/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+.coverage.*
+.coverage*
+
+# Profile data
+*.prof
+*.prof.txt
+
+# ============================================
+# Project-specific
+# ============================================
+
+# Custom data files
+*.xlsx
+*.xls
+*.csv
+data/
+exports/
+imports/
+
+# User uploaded files
+media/outage_photos/
+media/profile_pics/
+media/uploads/
+
+# Static files (generated)
+staticfiles/
+static/CACHE/
+
+# Local configuration
+config.local.py
+.env.local
+.env.development
+.env.production
+
+# Backup database files
+*.sqlite3.bak
+*.sqlite3.old
+db.sqlite3.*
+
+# Celery beat schedule
+celerybeat-schedule.db
+
+# Cache directory
+cache/
+.cache/
+
+# Temporary media files
+temp_uploads/
+tmp_uploads/

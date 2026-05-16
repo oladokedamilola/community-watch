@@ -1,0 +1,484 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}System Notifications - Admin{% endblock %}
+
+{% block page_title %}System Notifications{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notifications-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    /* Stats Cards */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(46,125,50,0.1);
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .stat-icon i {
+        font-size: 1.5rem;
+        color: var(--primary);
+    }
+    
+    .stat-info h3 {
+        font-size: 1.5rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    
+    .stat-info p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--gray);
+    }
+    
+    /* Notifications List */
+    .notifications-card {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .notification-item {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-light);
+        transition: background 0.2s;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+    
+    .notification-item:hover {
+        background: rgba(46,125,50,0.03);
+    }
+    
+    .notification-item.unread {
+        background: rgba(46,125,50,0.05);
+        position: relative;
+    }
+    
+    .notification-item.unread::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--primary);
+    }
+    
+    .notification-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .notification-icon.system {
+        background: rgba(59,130,246,0.1);
+        color: #3B82F6;
+    }
+    
+    .notification-icon.alert {
+        background: rgba(239,68,68,0.1);
+        color: #EF4444;
+    }
+    
+    .notification-icon.info {
+        background: rgba(16,185,129,0.1);
+        color: #10B981;
+    }
+    
+    .notification-icon.warning {
+        background: rgba(245,158,11,0.1);
+        color: #F59E0B;
+    }
+    
+    .notification-content {
+        flex: 1;
+    }
+    
+    .notification-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+        color: var(--secondary);
+    }
+    
+    .notification-message {
+        font-size: 0.8rem;
+        color: var(--gray);
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+    }
+    
+    .notification-time {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .notification-badge {
+        flex-shrink: 0;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+    }
+    
+    .badge-critical {
+        background: rgba(239,68,68,0.1);
+        color: #DC2626;
+    }
+    
+    .badge-high {
+        background: rgba(245,158,11,0.1);
+        color: #D97706;
+    }
+    
+    .badge-normal {
+        background: rgba(59,130,246,0.1);
+        color: #2563EB;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--gray-light);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+        color: var(--gray);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="notifications-container">
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalCount">0</h3>
+                    <p>Total Notifications</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-envelope-open"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="unreadCount">0</h3>
+                    <p>Unread</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Card -->
+        <div class="notifications-card">
+            <div class="card-header">
+                <h2>
+                    <i class="fas fa-shield-alt" style="color: var(--primary);"></i>
+                    System Alerts & Notifications
+                </h2>
+                <div class="action-buttons">
+                    <button id="markAllReadBtn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-check-double"></i> Mark All Read
+                    </button>
+                    <button id="clearAllBtn" class="btn btn-outline btn-sm">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+            
+            <div id="notificationsList">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-pulse"></i>
+                    <h3>Loading...</h3>
+                    <p>Please wait while we load notifications</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Sample notifications data - replace with actual API call
+    // This is a placeholder - you'll need to create an API endpoint for admin notifications
+    
+    let notifications = [
+        {
+            id: 1,
+            title: "New Report Submitted",
+            message: "A new outage report has been submitted and requires review.",
+            created_at: "2024-01-15T10:30:00",
+            is_read: false,
+            type: "system",
+            priority: "normal"
+        },
+        {
+            id: 2,
+            title: "System Update",
+            message: "GridWatch has been updated to version 1.2.0 with new features.",
+            created_at: "2024-01-14T09:15:00",
+            is_read: true,
+            type: "info",
+            priority: "normal"
+        },
+        {
+            id: 3,
+            title: "Urgent: Server Alert",
+            message: "High API response time detected. Please check server performance.",
+            created_at: "2024-01-13T14:45:00",
+            is_read: false,
+            type: "alert",
+            priority: "high"
+        }
+    ];
+    
+    let totalCount = notifications.length;
+    let unreadCount = notifications.filter(n => !n.is_read).length;
+    
+    function updateStats() {
+        document.getElementById('totalCount').textContent = totalCount;
+        document.getElementById('unreadCount').textContent = unreadCount;
+    }
+    
+    function formatTimeAgo(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        
+        return date.toLocaleDateString();
+    }
+    
+    function getPriorityBadge(priority) {
+        const badges = {
+            'critical': '<span class="notification-badge badge-critical">Critical</span>',
+            'high': '<span class="notification-badge badge-high">High Priority</span>',
+            'normal': ''
+        };
+        return badges[priority] || '';
+    }
+    
+    function getNotificationIcon(type) {
+        const icons = {
+            'system': '<i class="fas fa-server"></i>',
+            'alert': '<i class="fas fa-exclamation-triangle"></i>',
+            'info': '<i class="fas fa-info-circle"></i>',
+            'warning': '<i class="fas fa-clock"></i>'
+        };
+        return icons[type] || '<i class="fas fa-bell"></i>';
+    }
+    
+    function renderNotifications() {
+        const container = document.getElementById('notificationsList');
+        
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-bell-slash"></i>
+                    <h3>No Notifications</h3>
+                    <p>You're all caught up! No system alerts at this time.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = notifications.map(n => `
+            <div class="notification-item ${!n.is_read ? 'unread' : ''}" data-id="${n.id}">
+                <div class="notification-icon ${n.type}">
+                    ${getNotificationIcon(n.type)}
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">
+                        ${escapeHtml(n.title)}
+                        ${getPriorityBadge(n.priority)}
+                    </div>
+                    <div class="notification-message">${escapeHtml(n.message)}</div>
+                    <div class="notification-time">
+                        <i class="far fa-clock"></i>
+                        <span>${formatTimeAgo(n.created_at)}</span>
+                    </div>
+                </div>
+                <button class="notification-delete" data-id="${n.id}" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        // Add click handlers for marking as read
+        document.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                if (e.target.closest('.notification-delete')) return;
+                
+                const id = parseInt(item.dataset.id);
+                const notification = notifications.find(n => n.id === id);
+                
+                if (notification && !notification.is_read) {
+                    notification.is_read = true;
+                    unreadCount--;
+                    updateStats();
+                    renderNotifications();
+                    
+                    // Here you would also call an API to mark as read
+                    // await fetch(`/api/admin/notifications/${id}/mark-read/`, { method: 'POST' });
+                }
+            });
+        });
+        
+        // Add delete handlers
+        document.querySelectorAll('.notification-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                const notification = notifications.find(n => n.id === id);
+                
+                if (notification && confirm('Dismiss this notification?')) {
+                    if (!notification.is_read) unreadCount--;
+                    notifications = notifications.filter(n => n.id !== id);
+                    totalCount--;
+                    updateStats();
+                    renderNotifications();
+                    
+                    // Here you would also call an API to delete
+                    // await fetch(`/api/admin/notifications/${id}/delete/`, { method: 'DELETE' });
+                }
+            });
+        });
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Mark all as read
+    document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
+        notifications.forEach(n => {
+            if (!n.is_read) n.is_read = true;
+        });
+        unreadCount = 0;
+        updateStats();
+        renderNotifications();
+        
+        // Here you would also call an API to mark all as read
+        // await fetch('/api/admin/notifications/mark-all-read/', { method: 'POST' });
+    });
+    
+    // Clear all notifications
+    document.getElementById('clearAllBtn')?.addEventListener('click', () => {
+        if (confirm('Clear all notifications? This action cannot be undone.')) {
+            notifications = [];
+            totalCount = 0;
+            unreadCount = 0;
+            updateStats();
+            renderNotifications();
+            
+            // Here you would also call an API to clear all
+            // await fetch('/api/admin/notifications/clear-all/', { method: 'DELETE' });
+        }
+    });
+    
+    // Initial render
+    updateStats();
+    renderNotifications();
+    
+    // Auto-refresh every 60 seconds
+    setInterval(() => {
+        // Here you would fetch new notifications from API
+        // fetchNotifications();
+    }, 60000);
+</script>
+{% endblock %}

@@ -1,0 +1,910 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Report Details - {{ report.report_id }} | GridWatch Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Page Header with better styling */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-lg);
+        flex-wrap: wrap;
+        gap: var(--space-base);
+    }
+    
+    .report-id-badge {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 0.375rem 1rem;
+        border-radius: 2rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .page-header h1 {
+        color: var(--secondary);
+        margin: var(--space-sm) 0 0 0;
+        font-size: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .page-header h1 {
+            font-size: 1.25rem;
+        }
+    }
+    
+    /* IMPROVED: Info Cards */
+    .info-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+        height: 100%;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .info-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .info-card-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: var(--space-base) var(--space-lg);
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .info-card-header i {
+        margin-right: var(--space-sm);
+    }
+    
+    .info-card-body {
+        padding: var(--space-lg);
+    }
+    
+    @media (max-width: 768px) {
+        .info-card-body {
+            padding: var(--space-base);
+        }
+    }
+    
+    /* IMPROVED: Info Rows */
+    .info-row {
+        display: flex;
+        padding: var(--space-sm) 0;
+        border-bottom: 1px solid var(--gray-light);
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        width: 140px;
+        font-weight: 600;
+        color: var(--gray);
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    
+    .info-value {
+        flex: 1;
+        color: var(--secondary);
+        font-size: 0.9rem;
+        word-break: break-word;
+    }
+    
+    @media (max-width: 768px) {
+        .info-row {
+            flex-direction: column;
+            padding: var(--space-sm);
+        }
+        
+        .info-label {
+            width: 100%;
+            margin-bottom: var(--space-xs);
+        }
+    }
+    
+    /* IMPROVED: Status Badges */
+    .status-badge-large {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    
+    .type-badge-large {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    
+    .status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        border-left: 3px solid #F59E0B;
+    }
+    
+    .status-verified {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563EB;
+        border-left: 3px solid #3B82F6;
+    }
+    
+    .status-in_progress {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7C3AED;
+        border-left: 3px solid #8B5CF6;
+    }
+    
+    .status-resolved {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border-left: 3px solid #10B981;
+    }
+    
+    .status-rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #DC2626;
+        border-left: 3px solid #EF4444;
+    }
+    
+    .type-electricity {
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        color: #D97706;
+    }
+    
+    .type-water {
+        background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+        color: #2563EB;
+    }
+    
+    .type-network {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        color: #059669;
+    }
+    
+    /* IMPROVED: Form Styles */
+    .form-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+        height: 100%;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .form-group {
+        margin-bottom: var(--space-lg);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        margin-bottom: var(--space-sm);
+        display: block;
+        color: var(--secondary);
+        font-size: 0.85rem;
+    }
+    
+    .form-label i {
+        margin-right: var(--space-sm);
+        color: var(--primary);
+    }
+    
+    .form-control, select.form-control, textarea.form-control {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 2px solid var(--gray-light);
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        transition: var(--transition-base);
+        background: white;
+        font-family: inherit;
+    }
+    
+    .form-control:focus, select.form-control:focus, textarea.form-control:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1rem;
+    }
+    
+    .help-text {
+        font-size: 0.7rem;
+        color: var(--gray);
+        margin-top: var(--space-xs);
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+    
+    /* IMPROVED: Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: var(--space-base);
+        margin-top: var(--space-lg);
+        flex-wrap: wrap;
+    }
+    
+    @media (max-width: 640px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    /* IMPROVED: Timeline */
+    .timeline-section {
+        margin-top: var(--space-lg);
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.75rem;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, var(--primary), var(--gray-light), var(--gray-light));
+        border-radius: 3px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: var(--space-lg);
+        display: flex;
+        gap: var(--space-base);
+        animation: slideIn 0.5s ease forwards;
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    
+    .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+    .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+    .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+    .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+    .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+    .timeline-item:nth-child(6) { animation-delay: 0.6s; }
+    
+    @keyframes slideIn {
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .timeline-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        z-index: 1;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+    }
+    
+    .timeline-icon:hover {
+        transform: scale(1.1);
+    }
+    
+    @media (max-width: 768px) {
+        .timeline-icon {
+            width: 36px;
+            height: 36px;
+        }
+    }
+    
+    .timeline-content {
+        flex: 1;
+        background: var(--gray-lighter);
+        padding: var(--space-base);
+        border-radius: var(--radius-md);
+        transition: var(--transition-base);
+    }
+    
+    .timeline-content:hover {
+        background: #F3F4F6;
+        transform: translateX(5px);
+    }
+    
+    .timeline-content h4 {
+        margin: 0 0 var(--space-xs) 0;
+        font-size: 0.95rem;
+        color: var(--secondary);
+        font-weight: 700;
+    }
+    
+    .timeline-content p {
+        margin: var(--space-xs) 0;
+        font-size: 0.85rem;
+        color: var(--gray);
+        line-height: 1.5;
+    }
+    
+    .timeline-content small {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
+        flex-wrap: wrap;
+    }
+    
+    /* IMPROVED: Mobile Timeline */
+    @media (max-width: 768px) {
+        .timeline {
+            padding-left: 0;
+        }
+        
+        .timeline::before {
+            display: none;
+        }
+        
+        .timeline-item {
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+        
+        .timeline-icon {
+            margin-bottom: 0;
+        }
+        
+        .timeline-content {
+            margin-left: 0;
+        }
+    }
+    
+    /* IMPROVED: Photo Preview */
+    .photo-preview {
+        cursor: pointer;
+        transition: var(--transition-base);
+        border-radius: var(--radius-md);
+        max-width: 200px;
+        border: 2px solid var(--gray-light);
+    }
+    
+    .photo-preview:hover {
+        transform: scale(1.05);
+        opacity: 0.9;
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* IMPROVED: Photo Modal */
+    .photo-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .photo-modal.active {
+        display: flex;
+    }
+    
+    .photo-modal img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        animation: zoomIn 0.3s ease;
+    }
+    
+    @keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    /* IMPROVED: Map Container */
+    .map-container {
+        height: 350px;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-bottom: var(--space-base);
+    }
+    
+    /* IMPROVED: Two Column Layout */
+    .two-column-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: var(--space-lg);
+        margin-bottom: var(--space-lg);
+    }
+    
+    @media (max-width: 768px) {
+        .two-column-grid {
+            grid-template-columns: 1fr;
+            gap: var(--space-base);
+        }
+    }
+    
+    /* IMPROVED: Button Styles */
+    .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        text-decoration: none;
+        min-height: 44px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline {
+        background: white;
+        color: var(--secondary);
+        border: 2px solid var(--gray-light);
+    }
+    
+    .btn-outline:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 1rem;
+        font-size: 0.75rem;
+        min-height: 36px;
+    }
+    
+    /* Container */
+    .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Code styling */
+    code {
+        background: rgba(46, 125, 50, 0.1);
+        padding: 0.2rem 0.4rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <div class="report-id-badge">
+                    <i class="fas fa-hashtag"></i>
+                    {{ report.report_id }}
+                </div>
+                <h1>
+                    <i class="fas fa-file-alt" style="color: var(--primary);"></i>
+                    Report Details
+                </h1>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'reports:admin_reports_list' %}" class="btn btn-outline btn-icon">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+                <a href="{% url 'reports:track_report' report.report_id %}" class="btn btn-outline btn-icon" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-external-link-alt"></i> Public View
+                </a>
+            </div>
+        </div>
+        
+        <!-- Two Column Layout -->
+        <div class="two-column-grid">
+            <!-- Report Information Card -->
+            <div class="info-card">
+                <div class="info-card-header">
+                    <i class="fas fa-info-circle"></i> Report Information
+                </div>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <div class="info-label">Report ID</div>
+                        <div class="info-value"><code>{{ report.report_id }}</code></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Outage Type</div>
+                        <div class="info-value">
+                            <span class="type-badge-large type-{{ report.outage_type }}">
+                                <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                                {{ report.get_outage_type_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Status</div>
+                        <div class="info-value">
+                            <span class="status-badge-large status-{{ report.status }}">
+                                <i class="fas {{ report.get_status_icon }}"></i>
+                                {{ report.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Location</div>
+                        <div class="info-value">
+                            <i class="fas fa-map-marker-alt" style="color: var(--gray); font-size: 0.8rem;"></i>
+                            {{ report.location_text }}
+                        </div>
+                    </div>
+                    {% if report.latitude and report.longitude %}
+                    <div class="info-row">
+                        <div class="info-label">Coordinates</div>
+                        <div class="info-value">
+                            <code>{{ report.latitude|floatformat:6 }}, {{ report.longitude|floatformat:6 }}</code>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <div class="info-label">Description</div>
+                        <div class="info-value">{{ report.description|linebreaksbr }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Reported By</div>
+                        <div class="info-value">
+                            {% if report.user %}
+                                <i class="fas fa-user-circle"></i>
+                                {{ report.user.get_full_name|default:report.user.email }}
+                                {% if report.user.is_admin %}
+                                    <span style="background: var(--primary-light); color: white; padding: 0.15rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; margin-left: 0.5rem;">Admin</span>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-user-secret"></i>
+                                Anonymous {% if report.anonymous_name %}({{ report.anonymous_name }}){% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Contact</div>
+                        <div class="info-value">
+                            {% if report.contact_info %}
+                                <i class="fas fa-phone"></i> {{ report.contact_info }}
+                            {% else %}
+                                <span style="color: var(--gray);">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Reported At</div>
+                        <div class="info-value">
+                            <i class="far fa-calendar-alt"></i>
+                            {{ report.reported_at|date:"F j, Y" }} at {{ report.reported_at|date:"g:i A" }}
+                            <small style="color: var(--gray);">({{ report.reported_at|timesince }} ago)</small>
+                        </div>
+                    </div>
+                    {% if report.resolved_at %}
+                    <div class="info-row">
+                        <div class="info-label">Resolved At</div>
+                        <div class="info-value">
+                            <i class="far fa-check-circle"></i>
+                            {{ report.resolved_at|date:"F j, Y" }} at {{ report.resolved_at|date:"g:i A" }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if report.assigned_to %}
+                    <div class="info-row">
+                        <div class="info-label">Assigned To</div>
+                        <div class="info-value">
+                            <i class="fas fa-user-check"></i> {{ report.assigned_to }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if report.photo %}
+                    <div class="info-row">
+                        <div class="info-label">Photo Evidence</div>
+                        <div class="info-value">
+                            <img src="{{ report.photo.url }}" alt="Report Photo" class="photo-preview" 
+                                 style="max-width: 200px; border-radius: var(--radius-md); border: 2px solid var(--gray-light); cursor: pointer;">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Status Update Form Card -->
+            <div class="form-card">
+                <div class="info-card-header">
+                    <i class="fas fa-edit"></i> Update Status
+                </div>
+                <div class="info-card-body">
+                    <form method="post" id="statusUpdateForm">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-tag"></i> Status
+                            </label>
+                            {{ form.status }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-sticky-note"></i> Admin Notes (Internal)
+                            </label>
+                            {{ form.admin_notes }}
+                            <div class="help-text">
+                                <i class="fas fa-info-circle"></i>
+                                These notes are only visible to admins
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-comment-dots"></i> Resolution Notes (Visible to User)
+                            </label>
+                            {{ form.resolution_notes }}
+                            <div class="help-text">
+                                <i class="fas fa-info-circle"></i>
+                                These notes will be shown to the user when resolved
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-clock"></i> Estimated Restoration Time
+                            </label>
+                            {{ form.estimated_restoration_time }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-user-hard-hat"></i> Assigned To
+                            </label>
+                            {{ form.assigned_to }}
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Report
+                            </button>
+                            {% if report.status != 'resolved' %}
+                            <button type="button" class="btn btn-success" id="markResolvedBtn">
+                                <i class="fas fa-check-double"></i> Mark Resolved
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Timeline Section -->
+        <div class="info-card timeline-section">
+            <div class="info-card-header">
+                <i class="fas fa-history"></i> Status History
+            </div>
+            <div class="info-card-body">
+                {% if updates %}
+                    <div class="timeline">
+                        {% for update in updates %}
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background: {{ update.report.get_status_color }};">
+                                <i class="fas {{ update.report.get_status_icon }}"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h4>{{ update.get_status_display }}</h4>
+                                {% if update.note %}
+                                    <p>{{ update.note }}</p>
+                                {% endif %}
+                                <small>
+                                    <i class="fas fa-user"></i> {{ update.created_by.get_full_name|default:update.created_by.email|default:"System" }}
+                                    <i class="fas fa-clock"></i> {{ update.created_at|date:"F j, Y, g:i A" }}
+                                    <i class="fas fa-hourglass-half"></i> {{ update.created_at|timesince }} ago
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="text-align: center; padding: var(--space-xl); color: var(--gray);">
+                        <i class="fas fa-inbox" style="font-size: 2.5rem;"></i>
+                        <p style="margin-top: var(--space-base);">No status updates yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Location Map (if coordinates exist) -->
+        {% if report.latitude and report.longitude %}
+        <div class="info-card" style="margin-top: var(--space-lg);">
+            <div class="info-card-header">
+                <i class="fas fa-map-marked-alt"></i> Location Map
+            </div>
+            <div class="info-card-body">
+                <div class="map-container" id="locationMap"></div>
+                <div style="text-align: center;">
+                    <a href="https://www.google.com/maps?q={{ report.latitude }},{{ report.longitude }}" 
+                       target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+                        <i class="fas fa-external-link-alt"></i> Open in Google Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Photo Modal -->
+<div id="photoModal" class="photo-modal">
+    <img src="" alt="Full size photo" id="modalPhoto">
+</div>
+
+{% if report.latitude and report.longitude %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Initialize map
+    const map = L.map('locationMap').setView([{{ report.latitude }}, {{ report.longitude }}], 15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+        subdomains: 'abcd'
+    }).addTo(map);
+    
+    const marker = L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map);
+    marker.bindPopup('<strong>{{ report.location_text|escapejs }}</strong>').openPopup();
+</script>
+{% endif %}
+
+<script>
+    // Photo modal functionality
+    const photoPreview = document.querySelector('.photo-preview');
+    const photoModal = document.getElementById('photoModal');
+    const modalPhoto = document.getElementById('modalPhoto');
+    
+    if (photoPreview) {
+        photoPreview.addEventListener('click', () => {
+            modalPhoto.src = photoPreview.src;
+            photoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    
+    photoModal.addEventListener('click', () => {
+        photoModal.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    
+    // Escape key closes modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && photoModal.classList.contains('active')) {
+            photoModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+    
+    // Mark as resolved button
+    const markResolvedBtn = document.getElementById('markResolvedBtn');
+    if (markResolvedBtn) {
+        markResolvedBtn.addEventListener('click', () => {
+            const statusSelect = document.querySelector('select[name="status"]');
+            if (statusSelect) {
+                statusSelect.value = 'resolved';
+                document.getElementById('statusUpdateForm').submit();
+            }
+        });
+    }
+    
+    // Confirmation before status change
+    const statusForm = document.getElementById('statusUpdateForm');
+    if (statusForm) {
+        statusForm.addEventListener('submit', (e) => {
+            const statusSelect = document.querySelector('select[name="status"]');
+            if (statusSelect && statusSelect.value === 'resolved') {
+                if (!confirm('Mark this report as resolved? The user will be notified.')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+    
+    // Add animation to timeline items on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const timelineItems = document.querySelectorAll('.timeline-item');
+        timelineItems.forEach((item, index) => {
+            item.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+</script>
+{% endblock %}

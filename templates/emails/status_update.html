@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Status Update - GridWatch</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #F9FAFB;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E7D32, #1B5E20);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .status-card {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            background: #F3F4F6;
+        }
+        .status-icon {
+            font-size: 48px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2E7D32;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+        .footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6B7280;
+            border-top: 1px solid #E5E7EB;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>🔔 Status Update</h2>
+        </div>
+        
+        <div class="content">
+            <h3>Hello {{ user.get_full_name|default:"there" }},</h3>
+            
+            <p>There's been an update on your report <strong>{{ report.report_id }}</strong>.</p>
+            
+            <div class="status-card">
+                <div class="status-icon">
+                    {% if new_status == 'verified' %}✅
+                    {% elif new_status == 'in_progress' %}🔧
+                    {% elif new_status == 'resolved' %}✔️
+                    {% elif new_status == 'rejected' %}❌
+                    {% else %}📝
+                    {% endif %}
+                </div>
+                <h3>{{ report.get_status_display }}</h3>
+                <p>{{ status_message }}</p>
+                {% if admin_notes %}
+                <p><strong>Notes:</strong> {{ admin_notes }}</p>
+                {% endif %}
+            </div>
+            
+            {% if report.estimated_restoration_time %}
+            <p><strong>⏰ Estimated Restoration:</strong> {{ report.estimated_restoration_time|date:"F j, Y, g:i a" }}</p>
+            {% endif %}
+            
+            <div style="text-align: center;">
+                <a href="{{ tracking_url }}" class="button">
+                    View Full Details →
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>GridWatch - Keeping an eye on your utilities</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Report - GridWatch Admin</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #F9FAFB;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #DC2626, #B91C1C);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2E7D32;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 New Report Submitted</h1>
+        </div>
+        <div class="content">
+            <p>A new outage report requires your attention.</p>
+            
+            <p><strong>Report ID:</strong> {{ report.report_id }}</p>
+            <p><strong>Type:</strong> {{ report.get_outage_type_display }}</p>
+            <p><strong>Location:</strong> {{ report.location_text }}</p>
+            <p><strong>Reported By:</strong> {{ report.user.email|default:"Anonymous" }}</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ admin_url }}" class="button">
+                    Review Report →
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

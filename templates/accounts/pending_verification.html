@@ -1,0 +1,39 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}Pending Verification - GridWatch{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; padding: 2rem 1rem;">
+    <div class="card" style="text-align: center;">
+        <div style="background: var(--warning); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-envelope" style="font-size: 2rem; color: white;"></i>
+        </div>
+        
+        <h2 style="color: var(--secondary); margin-bottom: 0.5rem;">Verify Your Email</h2>
+        
+        <p style="color: var(--gray); margin-bottom: 1rem;">
+            We've sent a verification link to <strong>{{ email }}</strong>
+        </p>
+        
+        <div style="background: var(--light); padding: 1rem; border-radius: 0.75rem; margin: 1rem 0;">
+            <p style="margin: 0; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> 
+                Please check your inbox and click the verification link to activate your account.
+            </p>
+        </div>
+        
+        <p style="font-size: 0.85rem; color: var(--gray);">
+            Didn't receive the email? Check your spam folder or 
+            <a href="{{ resend_url }}" class="auth-link">click here to resend</a>
+        </p>
+        
+        <hr style="margin: 1.5rem 0;">
+        
+        <p style="font-size: 0.85rem;">
+            Already verified? 
+            <a href="{% url 'accounts:login' %}" class="auth-link">Login here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

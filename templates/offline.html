@@ -1,0 +1,73 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}Offline - GridWatch{% endblock %}
+
+{% block content %}
+<div class="offline-container" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div class="card" style="text-align: center; max-width: 500px;">
+        <div class="offline-icon" style="font-size: 5rem; margin-bottom: 1.5rem;">
+            <i class="fas fa-wifi-slash" style="color: var(--gray);"></i>
+        </div>
+        
+        <h1 style="color: var(--primary); margin-bottom: 1rem;">You're Offline</h1>
+        
+        <p style="color: var(--gray); margin-bottom: 2rem;">
+            Don't worry! You can still use GridWatch. Your reports will be saved and submitted when you reconnect.
+        </p>
+        
+        <div class="offline-features" style="display: grid; gap: 1rem; margin-bottom: 2rem; text-align: left;">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                <span>View previously loaded reports</span>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                <span>Create new outage reports (queued)</span>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                <span>Access cached map tiles</span>
+            </div>
+        </div>
+        
+        <div class="offline-actions" style="display: flex; flex-direction: column; gap: 1rem;">
+            <button onclick="location.reload()" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Try Again
+            </button>
+            
+            <a href="{% url 'reports:report_form' %}" class="btn btn-outline">
+                <i class="fas fa-plus-circle"></i> Create Offline Report
+            </a>
+        </div>
+        
+        <div class="offline-status" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--gray-light);">
+            <small id="offlineQueueStatus" style="color: var(--gray);">
+                <i class="fas fa-clock"></i> Checking queue status...
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Check pending offline reports
+    if ('serviceWorker' in navigator && 'controller' in navigator) {
+        const messageChannel = new MessageChannel();
+        
+        messageChannel.port1.onmessage = (event) => {
+            if (event.data.type === 'SYNC_STATUS') {
+                const statusEl = document.getElementById('offlineQueueStatus');
+                if (event.data.count > 0) {
+                    statusEl.innerHTML = `<i class="fas fa-queue"></i> ${event.data.count} report(s) pending sync. Will submit when online.`;
+                } else {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> No pending reports.`;
+                }
+            }
+        };
+        
+        navigator.serviceWorker.controller.postMessage({
+            type: 'GET_SYNC_STATUS'
+        }, [messageChannel.port2]);
+    }
+</script>
+{% endblock %}

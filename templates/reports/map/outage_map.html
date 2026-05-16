@@ -1,0 +1,840 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Outage Map - GridWatch{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet.js Core -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Leaflet Plugins -->
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<!-- Leaflet Heatmap -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+
+<!-- Leaflet Control Geocoder -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+
+<!-- Leaflet Locate Control -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.79.0/L.Control.Locate.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .map-container {
+        position: relative;
+        height: calc(100vh - 70px);
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    #map {
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+    }
+    
+    /* Filters Panel */
+    .map-filters-panel {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 320px;
+        max-width: calc(100% - 40px);
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(46, 125, 50, 0.1);
+    }
+    
+    .map-filters-panel.collapsed {
+        transform: translateX(-380px);
+    }
+    
+    .panel-header {
+        padding: 1rem 1.25rem;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border-radius: 1.25rem 1.25rem 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .panel-toggle {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .panel-toggle:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+    }
+    
+    .panel-content {
+        padding: 1.25rem;
+        max-height: calc(100vh - 180px);
+        overflow-y: auto;
+    }
+    
+    .panel-content::-webkit-scrollbar {
+        width: 5px;
+    }
+    
+    .panel-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
+    }
+    
+    .panel-content::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 5px;
+    }
+    
+    .filter-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .filter-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-select {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1.5px solid var(--gray-light);
+        border-radius: 0.75rem;
+        font-size: 0.85rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-select:hover {
+        border-color: var(--primary);
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    
+    .view-toggle {
+        display: flex;
+        gap: 0.5rem;
+        background: var(--gray-light);
+        border-radius: 0.75rem;
+        padding: 0.25rem;
+    }
+    
+    .view-btn {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: transparent;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .view-btn.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .view-btn:not(.active):hover {
+        background: rgba(46, 125, 50, 0.1);
+        color: var(--primary);
+    }
+    
+    .stats-box {
+        background: linear-gradient(135deg, #F9FAFB, #F3F4F6);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .stats-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--gray);
+    }
+    
+    .refresh-btn {
+        width: 100%;
+        padding: 0.625rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .refresh-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    /* Popup Styling */
+    .custom-popup .leaflet-popup-content-wrapper {
+        border-radius: 1rem;
+        padding: 0;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .custom-popup .leaflet-popup-content {
+        margin: 0;
+        min-width: 280px;
+        max-width: 350px;
+    }
+    
+    .popup-content {
+        padding: 0;
+    }
+    
+    .popup-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 1rem 1rem 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .popup-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .popup-type.electricity {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+    
+    .popup-type.water {
+        background: #DBEAFE;
+        color: #2563EB;
+    }
+    
+    .popup-type.network {
+        background: #D1FAE5;
+        color: #059669;
+    }
+    
+    .popup-status {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-weight: 600;
+    }
+    
+    .popup-body {
+        padding: 1rem;
+    }
+    
+    .popup-location {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        color: var(--secondary);
+    }
+    
+    .popup-description {
+        font-size: 0.75rem;
+        color: var(--gray);
+        margin: 0.5rem 0;
+        line-height: 1.4;
+    }
+    
+    .popup-time {
+        font-size: 0.65rem;
+        color: #999;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .popup-footer {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--gray-light);
+        text-align: center;
+    }
+    
+    .popup-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .popup-link:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .map-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 2rem;
+        z-index: 1001;
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .map-loading.show {
+        display: flex;
+    }
+    
+    @media (max-width: 768px) {
+        .map-filters-panel {
+            width: 280px;
+            top: 10px;
+            left: 10px;
+        }
+        
+        .panel-content {
+            max-height: calc(100vh - 160px);
+        }
+    }
+    
+    .fab-toggle {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        width: 48px;
+        height: 48px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .fab-toggle:hover {
+        transform: scale(1.05);
+        background: var(--primary-dark);
+    }
+    
+    @media (max-width: 768px) {
+        .fab-toggle {
+            display: flex;
+        }
+        
+        .map-filters-panel {
+            transform: translateX(-300px);
+        }
+        
+        .map-filters-panel.mobile-open {
+            transform: translateX(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-container">
+    <div class="fab-toggle" id="fabToggle">
+        <i class="fas fa-filter"></i>
+    </div>
+    
+    <!-- Filters Panel -->
+    <div class="map-filters-panel" id="filtersPanel">
+        <div class="panel-header" id="panelHeader">
+            <h3>
+                <i class="fas fa-sliders-h"></i>
+                Filter Outages
+            </h3>
+            <button class="panel-toggle" id="panelToggle">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        <div class="panel-content">
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-bolt"></i> Outage Type
+                </label>
+                <select id="typeFilter" class="filter-select">
+                    <option value="all">📊 All Types</option>
+                    <option value="electricity">⚡ Electricity</option>
+                    <option value="water">💧 Water Supply</option>
+                    <option value="network">📡 Network/Telecom</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-flag-checkered"></i> Status
+                </label>
+                <select id="statusFilter" class="filter-select">
+                    <option value="all">📋 All Status</option>
+                    <option value="pending">⏳ Pending</option>
+                    <option value="verified">✅ Verified</option>
+                    <option value="in_progress">🔧 In Progress</option>
+                    <option value="resolved">✔️ Resolved</option>
+                    <option value="rejected">❌ Rejected</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-calendar-alt"></i> Date Range
+                </label>
+                <select id="daysFilter" class="filter-select">
+                    <option value="7">📅 Last 7 days</option>
+                    <option value="30" selected>📅 Last 30 days</option>
+                    <option value="90">📅 Last 90 days</option>
+                    <option value="365">📅 Last year</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-eye"></i> View Mode
+                </label>
+                <div class="view-toggle">
+                    <button id="markerModeBtn" class="view-btn active">
+                        <i class="fas fa-map-marker-alt"></i> Markers
+                    </button>
+                    <button id="heatmapModeBtn" class="view-btn">
+                        <i class="fas fa-fire"></i> Heatmap
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-box">
+                <div class="stats-title">
+                    <i class="fas fa-chart-pie"></i> Statistics
+                </div>
+                <div class="stats-grid" id="mapStats">
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Total</div></div>
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Active</div></div>
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Electricity</div></div>
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Water</div></div>
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Network</div></div>
+                    <div class="stat-item"><div class="stat-value">--</div><div class="stat-label">Resolved</div></div>
+                </div>
+            </div>
+            
+            <button id="refreshMapBtn" class="refresh-btn">
+                <i class="fas fa-sync-alt"></i> Refresh Map
+            </button>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    <div class="map-loading" id="mapLoading">
+        <i class="fas fa-spinner fa-pulse"></i> Loading outage data...
+    </div>
+</div>
+
+<script>
+    let map;
+    let markerLayer;
+    let heatmapLayer;
+    let currentViewMode = 'markers';
+    let currentMarkers = [];
+    let currentHeatData = [];
+    
+    const DEFAULT_CENTER = [9.0820, 8.6753];
+    const DEFAULT_ZOOM = 6;
+    const isAdmin = {{ user.is_admin|lower }};
+    
+    // Custom marker icons by type with unique colors
+    function getMarkerIcon(type, status) {
+        const colors = {
+            electricity: '#F59E0B',
+            water: '#3B82F6',
+            network: '#10B981'
+        };
+        
+        const color = colors[type] || '#6B7280';
+        const opacity = status === 'resolved' ? 0.6 : 1;
+        
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="
+                background: ${color};
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                border: 2px solid white;
+                opacity: ${opacity};
+                transition: transform 0.2s;
+            ">
+                <i class="fas ${type === 'electricity' ? 'fa-bolt' : type === 'water' ? 'fa-tint' : 'fa-wifi'}" 
+                   style="color: white; font-size: 14px;"></i>
+            </div>`,
+            iconSize: [32, 32],
+            popupAnchor: [0, -16]
+        });
+    }
+    
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19,
+            minZoom: 4
+        }).addTo(map);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        
+        L.control.locate({
+            position: 'bottomright',
+            strings: { title: 'Show my location' },
+            locateOptions: { enableHighAccuracy: true, maxZoom: 15 }
+        }).addTo(map);
+        
+        L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+        
+        loadOutageData();
+    }
+    
+    async function loadOutageData() {
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const daysFilter = document.getElementById('daysFilter').value;
+        
+        const loading = document.getElementById('mapLoading');
+        loading.classList.add('show');
+        
+        try {
+            if (currentViewMode === 'markers') {
+                // Load GeoJSON data for markers
+                const response = await fetch(`/reports/api/outages/geojson/?type=${typeFilter}&status=${statusFilter}&days=${daysFilter}`);
+                const data = await response.json();
+                renderMarkers(data);
+                updateStatistics(data);
+            } else {
+                // Load heatmap data
+                const heatmapResponse = await fetch(`/reports/api/outages/heatmap/?type=${typeFilter}&status=${statusFilter}&days=${daysFilter}`);
+                const heatmapData = await heatmapResponse.json();
+                
+                // Also load stats from geojson for statistics panel
+                const statsResponse = await fetch(`/reports/api/outages/geojson/?type=${typeFilter}&status=${statusFilter}&days=${daysFilter}`);
+                const statsData = await statsResponse.json();
+                
+                renderHeatmapFromData(heatmapData);
+                updateStatistics(statsData);
+            }
+        } catch (error) {
+            console.error('Error loading map data:', error);
+        } finally {
+            loading.classList.remove('show');
+        }
+    }
+    
+    function renderMarkers(data) {
+        // Clear existing layers
+        if (markerLayer) map.removeLayer(markerLayer);
+        if (heatmapLayer) map.removeLayer(heatmapLayer);
+        
+        markerLayer = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                return L.divIcon({
+                    html: `<div style="background: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 2px solid white;">${count}</div>`,
+                    iconSize: [40, 40]
+                });
+            }
+        });
+        
+        data.features.forEach(feature => {
+            const props = feature.properties;
+            const coords = feature.geometry.coordinates;
+            
+            if (coords && coords.length === 2) {
+                const marker = L.marker([coords[1], coords[0]], {
+                    icon: getMarkerIcon(props.type, props.status)
+                });
+                
+                marker.bindPopup(createPopupContent(props), {
+                    className: 'custom-popup',
+                    maxWidth: 350,
+                    minWidth: 280
+                });
+                
+                markerLayer.addLayer(marker);
+                currentMarkers.push(marker);
+            }
+        });
+        
+        map.addLayer(markerLayer);
+        
+        if (data.features.length > 0) {
+            const bounds = L.latLngBounds(data.features.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]));
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }
+    
+    function renderHeatmapFromData(heatmapData) {
+        // Clear existing layers
+        if (heatmapLayer) map.removeLayer(heatmapLayer);
+        if (markerLayer) map.removeLayer(markerLayer);
+        
+        if (!heatmapData.success || !heatmapData.data || heatmapData.data.length === 0) {
+            console.log('No heatmap data available');
+            return;
+        }
+        
+        // Prepare heatmap points: [lat, lng, intensity]
+        const heatPoints = heatmapData.data.map(point => {
+            // Weight based on type
+            let weight = point.weight || 1.0;
+            if (point.type === 'electricity') weight *= 1.2;
+            if (point.type === 'water') weight *= 1.0;
+            if (point.type === 'network') weight *= 0.8;
+            return [point.lat, point.lng, weight];
+        });
+        
+        if (heatPoints.length > 0) {
+            heatmapLayer = L.heatLayer(heatPoints, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 17,
+                minOpacity: 0.3,
+                gradient: {
+                    0.4: '#10B981',  // Green - low density
+                    0.6: '#F59E0B',  // Orange - medium
+                    0.8: '#EF4444',  // Red - high
+                    1.0: '#7F1D1D'   // Dark red - very high
+                }
+            }).addTo(map);
+            
+            // Center map to show all heat points
+            const bounds = L.latLngBounds(heatPoints.map(p => [p[0], p[1]]));
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+    }
+    
+    function createPopupContent(props) {
+        const statusColors = {
+            pending: '#F59E0B', verified: '#3B82F6', in_progress: '#8B5CF6', resolved: '#10B981', rejected: '#EF4444'
+        };
+        
+        // Role-based action button
+        const actionUrl = isAdmin ? `/reports/admin/report/${props.id}/` : `/reports/track/${props.id}/`;
+        const actionText = isAdmin ? 'Edit Report' : 'Track Status';
+        
+        return `
+            <div class="popup-content">
+                <div class="popup-header">
+                    <span class="popup-type ${props.type}">
+                        <i class="fas ${props.type === 'electricity' ? 'fa-bolt' : props.type === 'water' ? 'fa-tint' : 'fa-wifi'}"></i>
+                        ${props.type_display}
+                    </span>
+                    <span class="popup-status" style="background: ${statusColors[props.status]}20; color: ${statusColors[props.status]};">
+                        ${props.status_display}
+                    </span>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-location">
+                        <i class="fas fa-map-marker-alt"></i> ${props.location}
+                    </div>
+                    <div class="popup-description">${props.description.substring(0, 120)}${props.description.length > 120 ? '...' : ''}</div>
+                    <div class="popup-time">
+                        <i class="far fa-clock"></i> ${props.reported_at_display}
+                        ${props.estimated_restoration ? `<span>• ETA: ${new Date(props.estimated_restoration).toLocaleString()}</span>` : ''}
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <a href="${actionUrl}" class="popup-link" target="_blank">
+                        ${actionText} <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+    
+    function updateStatistics(data) {
+        let total = data.features.length, active = 0, electricity = 0, water = 0, network = 0, resolved = 0;
+        
+        data.features.forEach(f => {
+            if (f.properties.status !== 'resolved') active++;
+            if (f.properties.type === 'electricity') electricity++;
+            if (f.properties.type === 'water') water++;
+            if (f.properties.type === 'network') network++;
+            if (f.properties.status === 'resolved') resolved++;
+        });
+        
+        const stats = [total, active, electricity, water, network, resolved];
+        document.querySelectorAll('#mapStats .stat-value').forEach((el, i) => el.textContent = stats[i]);
+    }
+    
+    function setupGeocoder() {
+        L.Control.geocoder({
+            defaultMarkGeocode: false, position: 'topleft', placeholder: '🔍 Search location...',
+            suggestMinLength: 2
+        }).on('markgeocode', function(e) {
+            map.setView(e.geocode.center, 14);
+            L.marker(e.geocode.center).addTo(map).bindPopup(`<b>📍 ${e.geocode.name}</b>`).openPopup();
+            setTimeout(() => map.closePopup(), 3000);
+        }).addTo(map);
+    }
+    
+    function setupEventListeners() {
+        ['typeFilter', 'statusFilter', 'daysFilter'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => loadOutageData());
+        });
+        document.getElementById('refreshMapBtn').addEventListener('click', () => loadOutageData());
+        
+        const markerBtn = document.getElementById('markerModeBtn');
+        const heatmapBtn = document.getElementById('heatmapModeBtn');
+        
+        markerBtn.addEventListener('click', () => {
+            if (currentViewMode !== 'markers') {
+                currentViewMode = 'markers';
+                markerBtn.classList.add('active');
+                heatmapBtn.classList.remove('active');
+                loadOutageData();
+            }
+        });
+        
+        heatmapBtn.addEventListener('click', () => {
+            if (currentViewMode !== 'heatmap') {
+                currentViewMode = 'heatmap';
+                heatmapBtn.classList.add('active');
+                markerBtn.classList.remove('active');
+                loadOutageData();
+            }
+        });
+        
+        const panelToggle = document.getElementById('panelToggle');
+        const filtersPanel = document.getElementById('filtersPanel');
+        let isCollapsed = false;
+        panelToggle.addEventListener('click', () => {
+            isCollapsed = !isCollapsed;
+            filtersPanel.style.transform = isCollapsed ? 'translateX(-340px)' : 'translateX(0)';
+            const icon = panelToggle.querySelector('i');
+            icon.classList.remove(isCollapsed ? 'fa-chevron-left' : 'fa-chevron-right');
+            icon.classList.add(isCollapsed ? 'fa-chevron-right' : 'fa-chevron-left');
+        });
+        
+        document.getElementById('fabToggle')?.addEventListener('click', () => {
+            filtersPanel.classList.toggle('mobile-open');
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        setupGeocoder();
+        setupEventListeners();
+        setInterval(() => loadOutageData(), 30000);
+    });
+</script>
+{% endblock %}

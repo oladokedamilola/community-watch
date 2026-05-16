@@ -1,0 +1,268 @@
+<style>
+    /* Save Button - Extreme Top Right Corner Positioning */
+    .feed-post {
+        position: relative;
+    }
+    
+    .save-btn-wrapper {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 10;
+    }
+    
+    .save-btn {
+        background: transparent;
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #cbd5e1;
+        font-size: 1rem;
+    }
+    
+    .save-btn:hover {
+        background: rgba(0, 0, 0, 0.05);
+        transform: scale(1.1);
+        color: var(--primary);
+    }
+    
+    .save-btn.saved {
+        color: #f59e0b;
+    }
+    
+    .save-btn.saved i {
+        font-weight: 900;
+    }
+    
+    /* Post Badges */
+    .post-badges {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    /* Adjust post-header to make room for absolute positioned button */
+    .post-header {
+        padding-right: 48px;
+        position: relative;
+    }
+    
+    /* End of Feed Message */
+    .end-of-feed-message {
+        text-align: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(46, 125, 50, 0.05), rgba(46, 125, 50, 0.02));
+        border-radius: 1rem;
+        margin: 1rem 0;
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    .end-of-feed-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .end-of-feed-message.load-more i {
+        color: var(--primary);
+    }
+    
+    .end-of-feed-message.caught-up i {
+        color: var(--success);
+    }
+    
+    .end-of-feed-message h3 {
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+    }
+    
+    .end-of-feed-message p {
+        color: var(--gray);
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+    
+    .load-more-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 2rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .load-more-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+    
+    .load-more-btn:active {
+        transform: translateY(0);
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .save-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 0.9rem;
+        }
+        
+        .post-header {
+            padding-right: 44px;
+        }
+        
+        .save-btn-wrapper {
+            top: 8px;
+            right: 8px;
+        }
+        
+        .end-of-feed-message {
+            padding: 1.5rem;
+        }
+        
+        .end-of-feed-message i {
+            font-size: 2.5rem;
+        }
+    }
+</style>
+
+{% for report in reports %}
+<div class="feed-post" data-report-id="{{ report.id }}">
+    <div class="post-header">
+        <div class="post-author">
+            <div class="author-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="author-info">
+                <span class="author-name">
+                    {% if report.is_anonymous %}
+                        Anonymous {% if report.anonymous_name %}({{ report.anonymous_name }}){% else %}Community Member{% endif %}
+                    {% else %}
+                        {{ report.user.get_full_name|default:report.user.email|truncatechars:20 }}
+                    {% endif %}
+                </span>
+                <span class="post-time">
+                    <i class="far fa-clock"></i> {{ report.reported_at|timesince }} ago
+                </span>
+            </div>
+        </div>
+        <div class="post-badges">
+            <span class="post-badge post-type-{{ report.outage_type }}">
+                <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                {{ report.get_outage_type_display }}
+            </span>
+            <span class="post-badge post-status-{{ report.status }}">
+                <i class="fas {{ report.get_status_icon }}"></i>
+                {{ report.get_status_display }}
+            </span>
+        </div>
+    </div>
+    
+    <!-- Save Button - Extreme Top Right Corner -->
+    <div class="save-btn-wrapper">
+        <button class="save-btn {% if report.id in saved_reports %}saved{% endif %}" data-report-id="{{ report.id }}" title="{% if report.id in saved_reports %}Unsave this post{% else %}Save this post{% endif %}">
+            <i class="{% if report.id in saved_reports %}fas{% else %}far{% endif %} fa-bookmark"></i>
+        </button>
+    </div>
+    
+    <div class="post-body">
+        <div class="post-location">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>{{ report.location_text }}</span>
+        </div>
+        <div class="post-description">
+            {{ report.description|truncatechars:200 }}
+        </div>
+        {% if report.photo %}
+        <div class="post-photo">
+            <img src="{{ report.photo.url }}" alt="Outage photo" onclick="window.open(this.src)">
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="post-actions">
+        <button class="action-btn reaction-btn" data-reaction="urgent">
+            <i class="fas fa-ambulance"></i>
+            <span class="action-count urgent-count" data-type="urgent">{{ report.urgent_count|default:"0" }}</span>
+            <span>Urgent</span>
+        </button>
+        <button class="action-btn reaction-btn" data-reaction="helpful">
+            <i class="fas fa-thumbs-up"></i>
+            <span class="action-count helpful-count" data-type="helpful">{{ report.helpful_count|default:"0" }}</span>
+            <span>Helpful</span>
+        </button>
+        <button class="action-btn comment-toggle">
+            <i class="fas fa-comment"></i>
+            <span class="action-count comment-count">{{ report.comments.count }}</span>
+            <span>Comments</span>
+        </button>
+    </div>
+    
+    <!-- Comments Section -->
+    <div class="comments-section">
+        <div class="comment-form">
+            <textarea class="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+            <button class="comment-submit">Post</button>
+        </div>
+        <div class="comments-list">
+            <div class="loading-comments" style="text-align: center; padding: 1rem;">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="empty-feed">
+    <i class="fas fa-newspaper"></i>
+    <h3>No Reports Yet</h3>
+    <p>Be the first to report an outage in your community!</p>
+    <a href="{% url 'reports:report_form' %}" class="btn btn-primary">Report an Outage</a>
+</div>
+{% endfor %}
+
+<!-- End of Feed Message - Load More button only when there are more posts -->
+{% if has_next %}
+<div class="end-of-feed-message load-more" id="loadMoreMessage">
+    <i class="fas fa-arrow-down"></i>
+    <h3>More posts available</h3>
+    <p>Click below to load more posts</p>
+    <button class="load-more-btn" onclick="loadMorePosts()">
+        <i class="fas fa-sync-alt"></i> Load More
+    </button>
+</div>
+{% else %}
+    <!-- Only show "You're all caught up" when there are NO posts and NO more pages -->
+    {% if reports %}
+    <div class="end-of-feed-message caught-up" id="caughtUpMessage">
+        <i class="fas fa-check-circle"></i>
+        <h3>You're all caught up! 🎉</h3>
+        <p>You've seen all the posts in your feed.</p>
+    </div>
+    {% endif %}
+{% endif %}

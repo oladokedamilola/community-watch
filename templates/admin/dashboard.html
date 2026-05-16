@@ -1,0 +1,793 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - GridWatch{% endblock %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Stats Grid - Properly scaled responsive cards */
+    .stats-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Desktop: 4 columns, normal size */
+    @media (min-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+        }
+    }
+    
+    /* Tablet: 2 columns */
+    @media (min-width: 641px) and (max-width: 1023px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    }
+    
+    /* Mobile: 2 columns */
+    @media (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+        }
+    }
+    
+    /* Extra small: 2 columns */
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+    }
+    
+    /* IMPROVED: Stat Card Styles */
+    .stat-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .stat-card:active {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stat-card:hover::before {
+        left: 100%;
+    }
+    
+    .stat-icon-wrapper {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition-base);
+    }
+    
+    .stat-card:hover .stat-icon-wrapper {
+        transform: scale(1.05);
+    }
+    
+    .stat-number {
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        color: white;
+        font-size: 1.75rem;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.7rem;
+        margin: 0;
+    }
+    
+    /* IMPROVED: Card Styles */
+    .card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* IMPROVED: Table Styles */
+    .reports-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .reports-table th {
+        background: linear-gradient(135deg, var(--primary-light), var(--primary));
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.875rem 0.75rem;
+        text-align: left;
+    }
+    
+    .reports-table th:first-child {
+        border-radius: 0.75rem 0 0 0;
+    }
+    
+    .reports-table th:last-child {
+        border-radius: 0 0.75rem 0 0;
+    }
+    
+    .reports-table td {
+        padding: 0.875rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--gray-light);
+    }
+    
+    .reports-table tbody tr {
+        transition: var(--transition-base);
+    }
+    
+    .reports-table tbody tr:hover {
+        background: rgba(46, 125, 50, 0.03);
+    }
+    
+    /* IMPROVED: Responsive Table */
+    @media (max-width: 768px) {
+        .reports-table thead {
+            display: none;
+        }
+        
+        .reports-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-light);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            background: white;
+        }
+        
+        .reports-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border: none;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .reports-table tbody td:last-child {
+            border-bottom: none;
+        }
+        
+        .reports-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            min-width: 100px;
+        }
+    }
+    
+    /* IMPROVED: Status Badge Styles */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.875rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    
+    .status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+    }
+    
+    .status-verified {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563EB;
+    }
+    
+    .status-in_progress {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7C3AED;
+    }
+    
+    .status-resolved {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+    
+    .status-rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #DC2626;
+    }
+    
+    /* IMPROVED: Type Badge Styles */
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.875rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    
+    .type-electricity {
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        color: #D97706;
+    }
+    
+    .type-water {
+        background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+        color: #2563EB;
+    }
+    
+    .type-network {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        color: #059669;
+    }
+    
+    /* IMPROVED: Quick Action Cards */
+    .actions-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    @media (max-width: 640px) {
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .action-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        transition: var(--transition-base);
+        border: 2px solid var(--gray-light);
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--primary);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .action-card i {
+        font-size: 1.25rem;
+        transition: var(--transition-base);
+    }
+    
+    .action-card:hover i {
+        transform: scale(1.1);
+    }
+    
+    .action-card strong {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .action-card p {
+        font-size: 0.7rem;
+        margin: 0;
+        color: var(--gray);
+    }
+    
+    /* IMPROVED: Chart Container */
+    .chart-container {
+        position: relative;
+        height: 280px;
+        width: 100%;
+    }
+    
+    /* IMPROVED: Last Updated Indicator */
+    .last-updated {
+        font-size: 0.75rem;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* IMPROVED: Refresh Button */
+    .refresh-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--gray);
+        transition: var(--transition-base);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .refresh-btn:hover {
+        color: var(--primary);
+        background: var(--gray-light);
+        transform: rotate(180deg);
+    }
+    
+    /* IMPROVED: Dashboard Header */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .dashboard-header h1 {
+        color: var(--primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    /* IMPROVED: Empty State */
+    .table-empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .table-empty-state i {
+        font-size: 3rem;
+        color: var(--gray-light);
+        margin-bottom: 1rem;
+    }
+    
+    .table-empty-state p {
+        color: var(--gray);
+        margin: 0;
+    }
+    
+    /* IMPROVED: Button Styles */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.8rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border: none;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline {
+        background: white;
+        color: var(--secondary);
+        border: 2px solid var(--gray-light);
+    }
+    
+    .btn-outline:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.7rem;
+    }
+    
+    /* Animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with Refresh -->
+    <div class="dashboard-header">
+        <h1>
+            <i class="fas fa-shield-alt"></i> Admin Dashboard
+        </h1>
+        <div class="header-actions">
+            <span class="last-updated">
+                <i class="fas fa-sync-alt"></i> Last updated: <span id="lastUpdated">Just now</span>
+            </span>
+            <button class="refresh-btn" id="refreshBtn" title="Refresh data">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2E7D32, #1B5E20); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                    <p style="opacity: 0.8; margin: 0 0 0.25rem 0; font-size: 0.8rem;">Total Reports</p>
+                    <h3 class="stat-number">{{ total_reports|default:"0" }}</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-flag-checkered" style="font-size: 1.3rem; color: white;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                    <p style="opacity: 0.8; margin: 0 0 0.25rem 0; font-size: 0.8rem;">Pending</p>
+                    <h3 class="stat-number">{{ pending_reports|default:"0" }}</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-clock" style="font-size: 1.3rem; color: white;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #3B82F6, #2563EB); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                    <p style="opacity: 0.8; margin: 0 0 0.25rem 0; font-size: 0.8rem;">In Progress</p>
+                    <h3 class="stat-number">{{ in_progress_reports|default:"0" }}</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-tools" style="font-size: 1.3rem; color: white;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                    <p style="opacity: 0.8; margin: 0 0 0.25rem 0; font-size: 0.8rem;">Resolved</p>
+                    <h3 class="stat-number">{{ resolved_reports|default:"0" }}</h3>
+                </div>
+                <div class="stat-icon-wrapper" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check-circle" style="font-size: 1.3rem; color: white;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts & Quick Actions Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+        <!-- Chart Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    <i class="fas fa-chart-pie" style="color: var(--primary);"></i> Reports by Type
+                </h3>
+                <span style="font-size: 0.7rem; color: var(--gray);">
+                    <i class="fas fa-chart-line"></i> All time
+                </span>
+            </div>
+            <div class="chart-container">
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem; font-size: 1rem;">
+                <i class="fas fa-bolt" style="color: var(--warning);"></i> Quick Actions
+            </h3>
+            <div class="actions-grid">
+                <a href="{% url 'reports:admin_reports_list' %}" class="action-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-list" style="color: var(--primary);"></i>
+                        <div>
+                            <strong>All Reports</strong>
+                            <p>View all submissions</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{% url 'reports:admin_reports_list' %}?status=pending" class="action-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-clock" style="color: #F59E0B;"></i>
+                        <div>
+                            <strong>Review Pending</strong>
+                            <p>{{ pending_reports|default:"0" }} reports to review</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{% url 'reports:admin_reports_list' %}?status=in_progress" class="action-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-tools" style="color: #3B82F6;"></i>
+                        <div>
+                            <strong>In Progress</strong>
+                            <p>{{ in_progress_reports|default:"0" }} active</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{% url 'reports:analytics_dashboard' %}" class="action-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-chart-line" style="color: #10B981;"></i>
+                        <div>
+                            <strong>Analytics</strong>
+                            <p>View insights</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Reports Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-history" style="color: var(--primary);"></i> Recent Reports
+            </h3>
+            <a href="{% url 'reports:admin_reports_list' %}" class="btn btn-outline btn-sm">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table class="reports-table">
+                <thead>
+                    <tr>
+                        <th>Report ID</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Reported</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in recent_reports %}
+                    <tr>
+                        <td data-label="Report ID" style="font-family: monospace; font-weight: 600;">{{ report.report_id }}</td>
+                        <td data-label="Type">
+                            <span class="type-badge type-{{ report.outage_type }}">
+                                <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                                {{ report.get_outage_type_display }}
+                            </span>
+                        </td>
+                        <td data-label="Location">
+                            <i class="fas fa-map-marker-alt" style="color: var(--gray); font-size: 0.7rem;"></i>
+                            {{ report.location_text|truncatechars:35 }}
+                        </td>
+                        <td data-label="Status">
+                            <span class="status-badge status-{{ report.status }}">
+                                <i class="fas {{ report.get_status_icon }}"></i>
+                                {{ report.get_status_display }}
+                            </span>
+                        </td>
+                        <td data-label="Reported">
+                            <i class="far fa-calendar-alt" style="color: var(--gray); font-size: 0.7rem;"></i>
+                            {{ report.reported_at|date:"M d, Y" }}
+                            <br>
+                            <small style="color: var(--gray);">{{ report.reported_at|date:"h:i A" }}</small>
+                        </td>
+                        <td data-label="Action">
+                            <a href="{% url 'reports:admin_report_detail' report.report_id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="table-empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No reports yet</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chart for reports by type
+    const chartElement = document.getElementById('typeChart');
+    
+    if (chartElement) {
+        const ctx = chartElement.getContext('2d');
+        
+        // Get data from Django template
+        const typeLabels = [{% for item in reports_by_type %}'{{ item.outage_type|title }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const typeCounts = [{% for item in reports_by_type %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        const typeColors = ['#F59E0B', '#3B82F6', '#10B981'];
+        
+        // If no data, show empty chart
+        if (typeLabels.length === 0) {
+            typeLabels.push('No Data');
+            typeCounts.push(1);
+        }
+        
+        // Create chart
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: typeLabels,
+                datasets: [{
+                    data: typeCounts,
+                    backgroundColor: typeColors.slice(0, typeLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11 },
+                            padding: 10,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 && total !== 1 ? ((value / total) * 100).toFixed(1) : 0;
+                                return percentage > 0 ? `${label}: ${value} (${percentage}%)` : `${label}: ${value}`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1000
+                }
+            }
+        });
+    }
+    
+    // Auto-refresh functionality (every 30 seconds)
+    let lastRefresh = new Date();
+    
+    function updateLastUpdated() {
+        const now = new Date();
+        const diff = Math.floor((now - lastRefresh) / 1000);
+        const lastUpdatedSpan = document.getElementById('lastUpdated');
+        
+        if (!lastUpdatedSpan) return;
+        
+        if (diff < 60) {
+            lastUpdatedSpan.innerText = `${diff} seconds ago`;
+        } else if (diff < 3600) {
+            const minutes = Math.floor(diff / 60);
+            lastUpdatedSpan.innerText = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        } else {
+            lastUpdatedSpan.innerText = now.toLocaleTimeString();
+        }
+    }
+    
+    function refreshData() {
+        lastRefresh = new Date();
+        updateLastUpdated();
+        window.location.reload();
+    }
+    
+    // Update last updated time every second
+    setInterval(updateLastUpdated, 1000);
+    
+    // Refresh button handler
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshData);
+    }
+    
+    // Initial last updated
+    updateLastUpdated();
+    
+    // Add animation to stat cards on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animation = `fadeInUp 0.4s ease ${index * 0.1}s forwards`;
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+        });
+        
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, index) => {
+            card.style.animation = `fadeInUp 0.4s ease ${index * 0.1 + 0.3}s forwards`;
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+        });
+    });
+</script>
+{% endblock %}

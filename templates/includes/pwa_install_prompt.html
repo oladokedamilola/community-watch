@@ -1,0 +1,94 @@
+<!-- PWA Installation Prompt -->
+<div id="pwaInstallPrompt" style="display: none; position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 400px; background: white; border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999; overflow: hidden;">
+    <div style="display: flex; padding: 1rem; gap: 1rem; align-items: center;">
+        <div class="pwa-icon" style="flex-shrink: 0;">
+            <i class="fas fa-download" style="font-size: 2rem; color: var(--primary);"></i>
+        </div>
+        <div style="flex: 1;">
+            <h4 style="margin: 0 0 0.25rem 0;">Install GridWatch App</h4>
+            <p style="font-size: 0.8rem; margin: 0; color: var(--gray);">
+                Get faster access, offline support, and home screen shortcuts
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button id="installPWA" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+                Install
+            </button>
+            <button id="dismissPWA" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0.25rem;">
+                &times;
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // PWA Installation
+    let deferredPrompt;
+    let pwaInstallPrompt = document.getElementById('pwaInstallPrompt');
+    
+    // Listen for beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('[PWA] beforeinstallprompt fired');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show custom install prompt (only if not dismissed before)
+        const pwaDismissed = localStorage.getItem('pwaPromptDismissed');
+        if (!pwaDismissed) {
+            setTimeout(() => {
+                pwaInstallPrompt.style.display = 'block';
+            }, 3000);
+        }
+    });
+    
+    // Handle install button click
+    document.getElementById('installPWA')?.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`[PWA] User response: ${outcome}`);
+            deferredPrompt = null;
+        }
+        pwaInstallPrompt.style.display = 'none';
+        localStorage.setItem('pwaPromptDismissed', 'true');
+    });
+    
+    // Handle dismiss button
+    document.getElementById('dismissPWA')?.addEventListener('click', () => {
+        pwaInstallPrompt.style.display = 'none';
+        localStorage.setItem('pwaPromptDismissed', 'true');
+        
+        // Show reminder after 7 days
+        setTimeout(() => {
+            localStorage.removeItem('pwaPromptDismissed');
+        }, 7 * 24 * 60 * 60 * 1000);
+    });
+    
+    // Check if already installed
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App installed');
+        pwaInstallPrompt.style.display = 'none';
+        deferredPrompt = null;
+        
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'message message-success';
+        toast.innerHTML = `
+            <div class="message-content">
+                <i class="fas fa-check-circle"></i>
+                <span>GridWatch installed successfully! You can now use it offline.</span>
+            </div>
+            <button class="close-message" onclick="this.closest('.message').remove()">&times;</button>
+        `;
+        document.querySelector('.messages-container')?.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 5000);
+    });
+    
+    // Detect if app is running in standalone mode (already installed)
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+        console.log('[PWA] Running in standalone mode');
+        pwaInstallPrompt.style.display = 'none';
+    }
+</script>

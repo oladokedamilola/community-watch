@@ -1,0 +1,817 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Dashboard - GridWatch{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet.js for Mini Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    /* Mini Map Container */
+    .mini-map-container {
+        height: 250px;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-top: var(--space-base);
+        border: 2px solid var(--gray-light);
+        transition: var(--transition-base);
+    }
+    
+    .mini-map-container:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    #miniMap {
+        height: 100%;
+        width: 100%;
+    }
+    
+    .map-legend {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        background: var(--gray-lighter);
+        border-radius: var(--radius-md);
+        font-size: 0.7rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .legend-color.electricity { background: #F59E0B; }
+    .legend-color.water { background: #3B82F6; }
+    .legend-color.network { background: #10B981; }
+    
+    .setup-prompt {
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .setup-prompt i {
+        font-size: 3rem;
+        color: var(--warning);
+        margin-bottom: 1rem;
+    }
+    
+    .setup-prompt h4 {
+        margin-bottom: 0.5rem;
+        color: var(--secondary);
+    }
+    
+    .setup-prompt p {
+        color: var(--gray);
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Welcome Banner */
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-radius: var(--radius-lg);
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .welcome-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .welcome-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (min-width: 1024px) {
+        .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .stat-card { padding: 1.5rem; }
+        .stat-icon { width: 60px; height: 60px; margin-bottom: 1rem; }
+        .stat-icon i { font-size: 1.75rem !important; }
+        .stat-number { font-size: 2rem; }
+    }
+    
+    @media (min-width: 641px) and (max-width: 1023px) {
+        .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
+        .stat-card {
+            padding: 0.875rem;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .stat-icon { width: 45px; height: 45px; margin-bottom: 0.5rem; }
+        .stat-icon i { font-size: 1.25rem !important; }
+        .stat-number { font-size: 1.5rem; margin: 0.25rem 0; }
+        .stat-label { font-size: 0.7rem; }
+    }
+    
+    @media (max-width: 640px) {
+        .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 0.625rem; }
+        .stat-card {
+            padding: 0.625rem;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .stat-icon { width: 40px; height: 40px; margin-bottom: 0.375rem; }
+        .stat-icon i { font-size: 1rem !important; }
+        .stat-number { font-size: 1.25rem; margin: 0.125rem 0; }
+        .stat-label { font-size: 0.65rem; text-align: center; }
+    }
+    
+    @media (max-width: 400px) {
+        .stats-grid { gap: 0.5rem; }
+        .stat-card { padding: 0.5rem; }
+        .stat-icon { width: 35px; height: 35px; }
+        .stat-icon i { font-size: 0.875rem !important; }
+        .stat-number { font-size: 1rem; }
+        .stat-label { font-size: 0.6rem; }
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        text-align: center;
+        transition: var(--transition-base);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(46,125,50,0.05), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stat-card:hover::before { left: 100%; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .stat-card:active { transform: translateY(-2px); }
+    
+    .stat-icon {
+        background: rgba(46, 125, 50, 0.1);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        transition: var(--transition-base);
+    }
+    
+    .stat-card:hover .stat-icon {
+        transform: scale(1.05);
+        background: rgba(46, 125, 50, 0.15);
+    }
+    
+    .stat-number {
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        color: var(--secondary);
+    }
+    
+    .stat-label {
+        color: var(--gray);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Section Cards */
+    .section-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+        height: 100%;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .section-card:hover { box-shadow: var(--shadow-md); }
+    
+    .section-header {
+        padding: var(--space-base) var(--space-lg);
+        border-bottom: 2px solid var(--gray-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        background: linear-gradient(to bottom, white, var(--gray-lighter));
+    }
+    
+    .section-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+    
+    .section-body {
+        padding: var(--space-base);
+        max-height: 550px;
+        overflow-y: auto;
+    }
+    
+    /* Report Items */
+    .report-item {
+        padding: var(--space-base);
+        border-bottom: 1px solid var(--gray-light);
+        transition: var(--transition-base);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-xs);
+    }
+    
+    .report-item:last-child { border-bottom: none; }
+    .report-item:hover {
+        background: var(--gray-lighter);
+        transform: translateX(4px);
+    }
+    
+    /* Type Badges */
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    
+    .type-electricity { background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #D97706; }
+    .type-water { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: #2563EB; }
+    .type-network { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); color: #059669; }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+    
+    .status-pending { background: rgba(245, 158, 11, 0.1); color: #D97706; border-left: 2px solid #F59E0B; }
+    .status-verified { background: rgba(59, 130, 246, 0.1); color: #2563EB; border-left: 2px solid #3B82F6; }
+    .status-in_progress { background: rgba(139, 92, 246, 0.1); color: #7C3AED; border-left: 2px solid #8B5CF6; }
+    .status-resolved { background: rgba(16, 185, 129, 0.1); color: #059669; border-left: 2px solid #10B981; }
+    
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-base);
+        margin-top: var(--space-sm);
+    }
+    
+    @media (min-width: 641px) and (max-width: 1023px) {
+        .quick-actions-grid { gap: var(--space-sm); }
+        .action-card { padding: var(--space-sm); }
+        .action-card i { font-size: 1.5rem; }
+        .action-card span { font-size: 0.75rem; }
+    }
+    
+    @media (max-width: 640px) {
+        .quick-actions-grid { grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .action-card { padding: 0.5rem; }
+        .action-card i { font-size: 1.1rem; margin-bottom: 0.25rem; }
+        .action-card span { font-size: 0.65rem; }
+    }
+    
+    @media (max-width: 400px) {
+        .quick-actions-grid { gap: 0.375rem; }
+        .action-card { padding: 0.375rem; }
+        .action-card i { font-size: 0.9rem; }
+        .action-card span { font-size: 0.55rem; }
+    }
+    
+    .action-card {
+        background: linear-gradient(135deg, var(--gray-lighter), white);
+        border-radius: var(--radius-md);
+        padding: var(--space-base);
+        text-align: center;
+        transition: var(--transition-base);
+        text-decoration: none;
+        color: var(--secondary);
+        border: 1px solid transparent;
+    }
+    
+    .action-card:hover {
+        background: white;
+        border-color: var(--primary);
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .action-card:active { transform: translateY(-1px); }
+    
+    .action-card i {
+        font-size: 1.75rem;
+        color: var(--primary);
+        margin-bottom: var(--space-sm);
+        display: block;
+        transition: var(--transition-base);
+    }
+    
+    .action-card:hover i { transform: scale(1.1); }
+    .action-card span { font-size: 0.85rem; font-weight: 600; }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-xl) var(--space-base);
+        color: var(--gray);
+    }
+    
+    .empty-state i { font-size: 3rem; opacity: 0.5; margin-bottom: var(--space-base); }
+    
+    /* Scrollbar */
+    .section-body::-webkit-scrollbar { width: 6px; }
+    .section-body::-webkit-scrollbar-track { background: var(--gray-light); border-radius: 3px; }
+    .section-body::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 3px; }
+    .section-body::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+    
+    /* Dashboard Grid */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid { grid-template-columns: 1fr; gap: 1rem; }
+        .section-header { padding: var(--space-base); }
+        .section-body { padding: var(--space-sm); }
+    }
+    
+    .btn {
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        text-decoration: none;
+        min-height: 40px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: var(--shadow-sm);
+        border: none;
+    }
+    
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .btn-primary:active { transform: translateY(0); }
+    
+    .btn-outline {
+        background: white;
+        color: var(--secondary);
+        border: 2px solid var(--gray-light);
+    }
+    
+    .btn-outline:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline:active { transform: translateY(0); }
+    .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.75rem; min-height: 32px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div class="welcome-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="color: white; margin-bottom: 0.25rem; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        Welcome back, {{ user.first_name|default:user.email }}!
+                        <span style="font-size: 1.8rem;">👋</span>
+                    </h1>
+                    <p style="opacity: 0.9; margin: 0; font-size: 0.85rem;">Track your outage reports and stay informed</p>
+                </div>
+                <a href="{% url 'reports:report_form' %}" class="btn" style="background: white; color: var(--primary); padding: 0.6rem 1.2rem;">
+                    <i class="fas fa-plus-circle"></i> Report Outage
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list" style="font-size: 1.5rem; color: var(--primary);"></i>
+            </div>
+            <div class="stat-number">{{ total_reports }}</div>
+            <div class="stat-label">Total Reports</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock" style="font-size: 1.5rem; color: var(--warning);"></i>
+            </div>
+            <div class="stat-number">{{ pending_reports }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle" style="font-size: 1.5rem; color: var(--success);"></i>
+            </div>
+            <div class="stat-number">{{ resolved_reports }}</div>
+            <div class="stat-label">Resolved</div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="dashboard-grid">
+        <!-- My Reports Section -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-file-alt" style="color: var(--primary);"></i>
+                    My Recent Reports
+                </h3>
+                <a href="{% url 'reports:my_reports' %}" class="btn btn-outline btn-sm">
+                    View All <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            <div class="section-body">
+                {% if user_reports %}
+                    {% for report in user_reports %}
+                    <div class="report-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <span class="type-badge type-{{ report.outage_type }}">
+                                    <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                                    {{ report.get_outage_type_display }}
+                                </span>
+                                <span style="font-family: monospace; font-size: 0.7rem; color: var(--gray);">#{{ report.report_id|slice:":12" }}</span>
+                            </div>
+                            <span class="status-badge status-{{ report.status }}">
+                                <i class="fas {{ report.get_status_icon }}"></i>
+                                {{ report.get_status_display }}
+                            </span>
+                        </div>
+                        <p style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem;">
+                            <i class="fas fa-map-marker-alt" style="color: var(--gray); width: 16px;"></i>
+                            {{ report.location_text|truncatechars:50 }}
+                        </p>
+                        <p style="margin: 0; font-size: 0.7rem; color: var(--gray);">
+                            <i class="far fa-clock"></i> {{ report.reported_at|timesince }} ago
+                        </p>
+                        <div style="margin-top: 0.5rem;">
+                            <a href="{% url 'reports:track_report' report.report_id %}" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.7rem;">
+                                Track Status <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No reports yet</p>
+                        <a href="{% url 'reports:report_form' %}" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
+                            Submit Your First Report
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Nearby Reports Section with Mini Map -->
+<div class="section-card">
+    <div class="section-header">
+        <h3>
+            <i class="fas fa-map-marker-alt" style="color: var(--primary);"></i>
+            Nearby Outages
+        </h3>
+        <a href="{% url 'reports:outage_map' %}" class="btn btn-outline btn-sm">
+            Full Map <i class="fas fa-external-link-alt"></i>
+        </a>
+    </div>
+    <div class="section-body">
+        <!-- Mini Map - Always visible -->
+        <div class="mini-map-container">
+            <div id="miniMap"></div>
+        </div>
+        
+        <!-- Map Legend -->
+        <div class="map-legend">
+            <div class="legend-item">
+                <div class="legend-color electricity"></div>
+                <span>Electricity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color water"></div>
+                <span>Water</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color network"></div>
+                <span>Network</span>
+            </div>
+        </div>
+        
+        <!-- Reports List or Message -->
+        <div style="margin-top: 0.75rem;">
+            <strong style="font-size: 0.75rem; color: var(--gray);">NEARBY ACTIVE REPORTS</strong>
+        </div>
+        
+        {# Check user.profile.village instead of user.village #}
+        {% if user.profile.village %}
+            {% if nearby_reports %}
+                {% for report in nearby_reports %}
+                <div class="report-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span class="type-badge type-{{ report.outage_type }}">
+                            <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                            {{ report.get_outage_type_display }}
+                        </span>
+                        <span class="status-badge status-{{ report.status }}">
+                            <i class="fas {{ report.get_status_icon }}"></i>
+                            {{ report.get_status_display }}
+                        </span>
+                    </div>
+                    <p style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem;">
+                        <i class="fas fa-location-dot" style="color: var(--gray); width: 16px;"></i>
+                        <strong>{{ report.location_text|truncatechars:45 }}</strong>
+                    </p>
+                    <p style="margin: 0; font-size: 0.7rem; color: var(--gray);">
+                        <i class="far fa-clock"></i> {{ report.reported_at|timesince }} ago
+                        {% if report.estimated_restoration_time %}
+                            • <i class="fas fa-hourglass-half"></i> ETA: {{ report.estimated_restoration_time|date:"M d, h:i A" }}
+                        {% endif %}
+                    </p>
+                    <div style="margin-top: 0.5rem;">
+                        <a href="{% url 'reports:track_report' report.report_id %}" class="btn btn-outline btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.7rem;">
+                            View Details <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    <p>No active outages near {{ user.profile.village }}</p>
+                    <small>When outages are reported in your area, they will appear here</small>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-map-marker-alt" style="color: var(--warning);"></i>
+                <h4>Set Your Location</h4>
+                <p>Please update your profile with your village or community to see nearby outages.</p>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-user-edit"></i> Update Profile
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+    </div>
+    
+    <!-- Quick Actions Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3>
+                <i class="fas fa-bolt" style="color: var(--warning);"></i>
+                Quick Actions
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="quick-actions-grid">
+                <a href="{% url 'reports:report_form' %}" class="action-card">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Report Outage</span>
+                </a>
+                <a href="{% url 'reports:outage_map' %}" class="action-card">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Live Map</span>
+                </a>
+                <a href="{% url 'reports:my_reports' %}" class="action-card">
+                    <i class="fas fa-history"></i>
+                    <span>My History</span>
+                </a>
+                <a href="{% url 'accounts:profile' %}" class="action-card">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Edit Profile</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet.js for Mini Map -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // Initialize Mini Map
+    let miniMap;
+    let miniMapMarkers = [];
+    const NIGERIA_CENTER = [9.0820, 8.6753];
+    
+    async function initMiniMap() {
+        const mapContainer = document.getElementById('miniMap');
+        if (!mapContainer) {
+            console.log('Map container not found');
+            return;
+        }
+        
+        miniMap = L.map('miniMap').setView(NIGERIA_CENTER, 6);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(miniMap);
+        
+        await loadOutages();
+    }
+    
+    async function loadOutages() {
+        try {
+            const response = await fetch(`/reports/api/outages/geojson/?days=30`);
+            const data = await response.json();
+            
+            miniMapMarkers.forEach(marker => miniMap.removeLayer(marker));
+            miniMapMarkers = [];
+            
+            const bounds = [];
+            
+            data.features.forEach(feature => {
+                const props = feature.properties;
+                const coords = feature.geometry.coordinates;
+                
+                if (coords && coords.length === 2) {
+                    const lat = coords[1];
+                    const lng = coords[0];
+                    bounds.push([lat, lng]);
+                    
+                    const markerColors = {
+                        electricity: '#F59E0B',
+                        water: '#3B82F6',
+                        network: '#10B981'
+                    };
+                    const color = markerColors[props.type] || '#6B7280';
+                    
+                    const markerHtml = `
+                        <div style="
+                            background: ${color};
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            cursor: pointer;
+                        ">
+                            <i class="fas ${props.type === 'electricity' ? 'fa-bolt' : props.type === 'water' ? 'fa-tint' : 'fa-wifi'}" 
+                               style="color: white; font-size: 12px;"></i>
+                        </div>
+                    `;
+                    
+                    const marker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            html: markerHtml,
+                            iconSize: [28, 28],
+                            className: 'custom-mini-marker'
+                        })
+                    });
+                    
+                    marker.bindPopup(`
+                        <div style="min-width: 220px;">
+                            <strong style="color: #2E7D32;">${props.type_display}</strong><br>
+                            <strong>📍 ${props.location}</strong><br>
+                            <small>Status: ${props.status_display}</small><br>
+                            <small>Reported: ${props.reported_at_display}</small><br>
+                            <a href="/reports/track/${props.id}/" target="_blank" style="color: #2E7D32; text-decoration: none; font-weight: 600;">View Details →</a>
+                        </div>
+                    `);
+                    
+                    marker.addTo(miniMap);
+                    miniMapMarkers.push(marker);
+                }
+            });
+            
+            // Try to center on user's village from profile
+            const village = "{{ user.profile.village|default:'' }}";
+            if (village) {
+                try {
+                    const geocodeResponse = await fetch(`/reports/api/search-location/?q=${encodeURIComponent(village)}`);
+                    const geocodeData = await geocodeResponse.json();
+                    if (geocodeData.success && geocodeData.results && geocodeData.results.length > 0) {
+                        const userLat = parseFloat(geocodeData.results[0].lat);
+                        const userLng = parseFloat(geocodeData.results[0].lon);
+                        miniMap.setView([userLat, userLng], 10);
+                    } else if (bounds.length > 0) {
+                        miniMap.fitBounds(bounds, { padding: [30, 30] });
+                    }
+                } catch (e) {
+                    console.log('Geocoding error:', e);
+                    if (bounds.length > 0) {
+                        miniMap.fitBounds(bounds, { padding: [30, 30] });
+                    }
+                }
+            } else if (bounds.length > 0) {
+                miniMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+            
+        } catch (error) {
+            console.error('Error loading map data:', error);
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initMiniMap();
+        
+        let refreshInterval = setInterval(() => {
+            loadOutages();
+        }, 30000);
+        
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    });
+    
+    // Add animation to stat cards
+    document.addEventListener('DOMContentLoaded', () => {
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animation = `fadeInUp 0.4s ease ${index * 0.1}s forwards`;
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+        });
+    });
+</script>
+{% endblock %}

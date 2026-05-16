@@ -1,0 +1,630 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}All Reports - Admin | GridWatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .total-badge {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 0.5rem 1.25rem;
+        border-radius: 2rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Filter Card */
+    .filter-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .filter-group.full-width {
+        flex: 2;
+        min-width: 200px;
+    }
+    
+    .filter-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+        color: var(--secondary);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .filter-select, .filter-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1.5px solid var(--gray-light);
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        background: white;
+    }
+    
+    .filter-select:focus, .filter-input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46,125,50,0.1);
+    }
+    
+    /* Bulk Actions Bar */
+    .bulk-actions-bar {
+        background: white;
+        border-radius: 1rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .bulk-actions-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .bulk-select-status {
+        padding: 0.5rem 0.875rem;
+        border: 1.5px solid var(--gray-light);
+        border-radius: 0.75rem;
+        font-size: 0.85rem;
+        background: white;
+    }
+    
+    /* Reports Table */
+    .reports-table-container {
+        overflow-x: auto;
+        border-radius: 1rem;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .reports-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .reports-table th {
+        background: linear-gradient(135deg, var(--primary-light), var(--primary));
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
+        text-align: left;
+    }
+    
+    .reports-table td {
+        padding: 0.875rem 0.75rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--gray-light);
+    }
+    
+    .reports-table tbody tr {
+        transition: background 0.2s;
+    }
+    
+    .reports-table tbody tr:hover {
+        background: rgba(46,125,50,0.03);
+    }
+    
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-pending {
+        background: rgba(245,158,11,0.1);
+        color: #D97706;
+    }
+    
+    .status-verified {
+        background: rgba(59,130,246,0.1);
+        color: #2563EB;
+    }
+    
+    .status-in_progress {
+        background: rgba(139,92,246,0.1);
+        color: #7C3AED;
+    }
+    
+    .status-resolved {
+        background: rgba(16,185,129,0.1);
+        color: #059669;
+    }
+    
+    .status-rejected {
+        background: rgba(239,68,68,0.1);
+        color: #DC2626;
+    }
+    
+    /* Type Badge */
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .type-electricity {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+    
+    .type-water {
+        background: #DBEAFE;
+        color: #2563EB;
+    }
+    
+    .type-network {
+        background: #D1FAE5;
+        color: #059669;
+    }
+    
+    /* Checkbox Styling */
+    .checkbox-custom {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--primary);
+    }
+    
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .page-btn {
+        padding: 0.5rem 1rem;
+        border: 1.5px solid var(--gray-light);
+        border-radius: 0.75rem;
+        background: white;
+        color: var(--secondary);
+        text-decoration: none;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+    
+    .page-btn:hover:not(.active) {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .page-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+    
+    .page-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Action Button */
+    .action-btn {
+        padding: 0.375rem 0.875rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    /* Responsive Table */
+    @media (max-width: 768px) {
+        .reports-table thead {
+            display: none;
+        }
+        
+        .reports-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-light);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+        }
+        
+        .reports-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border: none;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .reports-table tbody td:last-child {
+            border-bottom: none;
+        }
+        
+        .reports-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+        
+        .filter-group, .filter-group.full-width {
+            min-width: 100%;
+        }
+        
+        .bulk-actions-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 style="color: var(--primary); margin: 0;">
+            <i class="fas fa-list"></i> All Reports
+        </h1>
+        <div class="total-badge">
+            <i class="fas fa-chart-bar"></i>
+            Total: {{ total_count }}
+        </div>
+    </div>
+    
+    <!-- Filters Card -->
+    <div class="filter-card">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-filter"></i> Status
+                </label>
+                <select name="status" class="filter-select">
+                    <option value="">All Statuses</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>📝 Pending</option>
+                    <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>✅ Verified</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>🔧 In Progress</option>
+                    <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>✔️ Resolved</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>❌ Rejected</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">
+                    <i class="fas fa-bolt"></i> Type
+                </label>
+                <select name="type" class="filter-select">
+                    <option value="">All Types</option>
+                    <option value="electricity" {% if type_filter == 'electricity' %}selected{% endif %}>⚡ Electricity</option>
+                    <option value="water" {% if type_filter == 'water' %}selected{% endif %}>💧 Water</option>
+                    <option value="network" {% if type_filter == 'network' %}selected{% endif %}>📡 Network</option>
+                </select>
+            </div>
+            
+            <div class="filter-group full-width">
+                <label class="filter-label">
+                    <i class="fas fa-search"></i> Search
+                </label>
+                <input type="text" name="search" class="filter-input" 
+                       placeholder="Search by Report ID, Location, or Description..." 
+                       value="{{ search_query }}">
+            </div>
+            
+            <div class="filter-group" style="flex: 0 0 auto;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+            </div>
+            
+            <div class="filter-group" style="flex: 0 0 auto;">
+                <a href="{% url 'reports:admin_reports_list' %}" class="btn btn-outline" style="width: 100%;">
+                    <i class="fas fa-times"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Bulk Actions Bar -->
+    <form method="post" action="{% url 'reports:admin_bulk_update' %}" id="bulkForm">
+        {% csrf_token %}
+        <div class="bulk-actions-bar">
+            <div class="bulk-actions-left">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="selectAll" class="checkbox-custom">
+                    <span style="font-size: 0.85rem;">Select All</span>
+                </label>
+                
+                <select name="status" class="bulk-select-status" id="bulkStatusSelect">
+                    <option value="">Bulk Action</option>
+                    <option value="verified">✓ Mark Verified</option>
+                    <option value="in_progress">🔧 Mark In Progress</option>
+                    <option value="resolved">✔️ Mark Resolved</option>
+                    <option value="rejected">❌ Mark Rejected</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary" id="applyBulkBtn" disabled>
+                    <i class="fas fa-check-double"></i> Apply to Selected
+                </button>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--gray);">
+                <span id="selectedCount">0</span> report(s) selected
+            </div>
+        </div>
+        
+        <!-- Reports Table -->
+        <div class="reports-table-container">
+            <table class="reports-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>Report ID</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>User</th>
+                        <th>Reported</th>
+                        <th style="width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td data-label="Select">
+                            <input type="checkbox" name="report_ids" value="{{ report.report_id }}" class="report-checkbox checkbox-custom">
+                        </td>
+                        <td data-label="Report ID" style="font-family: monospace; font-weight: 600;">{{ report.report_id }}</td>
+                        <td data-label="Type">
+                            <span class="type-badge type-{{ report.outage_type }}">
+                                <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                                {{ report.get_outage_type_display }}
+                            </span>
+                        </td>
+                        <td data-label="Location" style="max-width: 250px;">
+                            <i class="fas fa-map-marker-alt" style="color: var(--gray); font-size: 0.7rem;"></i>
+                            {{ report.location_text|truncatechars:40 }}
+                        </td>
+                        <td data-label="Status">
+                            <span class="status-badge status-{{ report.status }}">
+                                <i class="fas {{ report.get_status_icon }}"></i>
+                                {{ report.get_status_display }}
+                            </span>
+                        </td>
+                        <td data-label="User">
+                            {% if report.user %}
+                                <i class="fas fa-user-circle" style="color: var(--gray);"></i>
+                                {{ report.user.email|truncatechars:25 }}
+                            {% else %}
+                                <i class="fas fa-user-secret" style="color: var(--gray);"></i>
+                                Anonymous
+                            {% endif %}
+                        </td>
+                        <td data-label="Reported">
+                            <i class="far fa-calendar-alt" style="color: var(--gray);"></i>
+                            {{ report.reported_at|date:"M d, Y" }}
+                            <br>
+                            <small style="color: var(--gray); font-size: 0.7rem;">{{ report.reported_at|date:"h:i A" }}</small>
+                        </td>
+                        <td data-label="Action">
+                            <a href="{% url 'reports:admin_report_detail' report.report_id %}" class="btn btn-primary action-btn" style="padding: 0.375rem 0.875rem; font-size: 0.75rem;">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h3>No Reports Found</h3>
+                                <p style="color: var(--gray);">Try adjusting your filters or search criteria</p>
+                                <a href="{% url 'reports:admin_reports_list' %}" class="btn btn-outline" style="margin-top: 1rem;">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    
+    <!-- Pagination -->
+    <div class="pagination mb-5">
+        {% if reports.has_previous %}
+            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">
+                <i class="fas fa-angle-double-left"></i> First
+            </a>
+            <a href="?page={{ reports.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">
+                <i class="fas fa-angle-left"></i> Previous
+            </a>
+        {% else %}
+            <span class="page-btn disabled">
+                <i class="fas fa-angle-double-left"></i> First
+            </span>
+            <span class="page-btn disabled">
+                <i class="fas fa-angle-left"></i> Previous
+            </span>
+        {% endif %}
+        
+        {% for num in reports.paginator.page_range %}
+            {% if num == reports.number %}
+                <span class="page-btn active">{{ num }}</span>
+            {% elif num > reports.number|add:'-3' and num < reports.number|add:'3' %}
+                <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">{{ num }}</a>
+            {% elif num == 1 or num == reports.paginator.num_pages %}
+                <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">{{ num }}</a>
+            {% elif num == reports.number|add:'-4' or num == reports.number|add:'4' %}
+                <span class="page-btn disabled">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if reports.has_next %}
+            <a href="?page={{ reports.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">
+                Next <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ reports.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-btn">
+                Last <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% else %}
+            <span class="page-btn disabled">
+                Next <i class="fas fa-angle-right"></i>
+            </span>
+            <span class="page-btn disabled">
+                Last <i class="fas fa-angle-double-right"></i>
+            </span>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Select all functionality
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.report-checkbox');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const applyBulkBtn = document.getElementById('applyBulkBtn');
+    const bulkStatusSelect = document.getElementById('bulkStatusSelect');
+    
+    function updateSelectedCount() {
+        const checkedCount = document.querySelectorAll('.report-checkbox:checked').length;
+        selectedCountSpan.textContent = checkedCount;
+        
+        // Enable/disable bulk action button
+        if (checkedCount > 0 && bulkStatusSelect.value) {
+            applyBulkBtn.disabled = false;
+        } else {
+            applyBulkBtn.disabled = true;
+        }
+        
+        // Update select all checkbox state
+        if (selectAll) {
+            const totalCheckboxes = checkboxes.length;
+            if (checkedCount === totalCheckboxes && totalCheckboxes > 0) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else if (checkedCount > 0 && checkedCount < totalCheckboxes) {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+        }
+    }
+    
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        });
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Enable/disable bulk button when status changes
+    if (bulkStatusSelect) {
+        bulkStatusSelect.addEventListener('change', () => {
+            const checkedCount = document.querySelectorAll('.report-checkbox:checked').length;
+            if (checkedCount > 0 && bulkStatusSelect.value) {
+                applyBulkBtn.disabled = false;
+            } else {
+                applyBulkBtn.disabled = true;
+            }
+        });
+    }
+    
+    // Initial count update
+    updateSelectedCount();
+    
+    // Confirm bulk action
+    const bulkForm = document.getElementById('bulkForm');
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', (e) => {
+            const selectedStatus = bulkStatusSelect.value;
+            const checkedCount = document.querySelectorAll('.report-checkbox:checked').length;
+            
+            if (!selectedStatus) {
+                e.preventDefault();
+                alert('Please select a status to apply');
+            } else if (checkedCount === 0) {
+                e.preventDefault();
+                alert('Please select at least one report');
+            } else if (selectedStatus === 'resolved') {
+                if (!confirm(`Mark ${checkedCount} report(s) as resolved? This will notify the users.`)) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

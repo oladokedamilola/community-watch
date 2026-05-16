@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Your Email - GridWatch</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2>Welcome to GridWatch!</h2>
+    <p>Hi {{ user.first_name|default:user.email }},</p>
+    <p>Thank you for registering with GridWatch. Please click the link below to verify your email address and activate your account:</p>
+    <p><a href="{{ verification_url }}" style="background: #2E7D32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+    <p>Or copy this link: <a href="{{ verification_url }}">{{ verification_url }}</a></p>
+    <p>This link will expire in {{ expiry_hours }} hours.</p>
+    <p>If you didn't create an account with GridWatch, please ignore this email.</p>
+    <hr>
+    <p style="font-size: 12px; color: #666;">&copy; 2026 GridWatch | Watch. Report. Restore.</p>
+</body>
+</html>

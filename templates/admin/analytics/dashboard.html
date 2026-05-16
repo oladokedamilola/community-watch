@@ -1,0 +1,1129 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - GridWatch Admin{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Stats Grid - Responsive square cards that scale with screen width */
+    .stats-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Desktop: 4 columns, normal size */
+    @media (min-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+        }
+        
+        .stat-card {
+            padding: 1.25rem;
+        }
+        
+        .stat-icon {
+            width: 55px;
+            height: 55px;
+            margin-bottom: 0.875rem;
+        }
+        
+        .stat-icon i {
+            font-size: 1.5rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.75rem;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+        }
+    }
+    
+    /* Tablet: 2 columns, scaled square cards */
+    @media (min-width: 641px) and (max-width: 1023px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+            aspect-ratio: 1 / 0.9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 0.625rem;
+        }
+        
+        .stat-icon i {
+            font-size: 1.35rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            margin: 0.25rem 0;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+        }
+    }
+    
+    /* Mobile Landscape: 2 columns, smaller square cards */
+    @media (min-width: 481px) and (max-width: 640px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+        }
+        
+        .stat-card {
+            padding: 0.875rem;
+            aspect-ratio: 1 / 0.9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-icon i {
+            font-size: 1.25rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.35rem;
+            margin: 0.2rem 0;
+        }
+        
+        .stat-label {
+            font-size: 0.68rem;
+            text-align: center;
+            line-height: 1.2;
+        }
+    }
+    
+    /* Mobile Portrait: 2 columns, even smaller */
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .stat-card {
+            padding: 0.75rem;
+            aspect-ratio: 1 / 0.85;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-icon i {
+            font-size: 1.1rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.25rem;
+            margin: 0.15rem 0;
+        }
+        
+        .stat-label {
+            font-size: 0.65rem;
+            text-align: center;
+            line-height: 1.2;
+        }
+    }
+    
+    /* Extra small devices (below 360px) */
+    @media (max-width: 360px) {
+        .stats-grid {
+            gap: 0.625rem;
+        }
+        
+        .stat-card {
+            padding: 0.625rem;
+        }
+        
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .stat-icon i {
+            font-size: 1rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.1rem;
+        }
+        
+        .stat-label {
+            font-size: 0.6rem;
+        }
+    }
+    
+    /* IMPROVED: Stat Card Styles */
+    .stat-card {
+        border-radius: var(--radius-lg);
+        text-align: center;
+        transition: var(--transition-base);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        border: none;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .stat-card:hover::before {
+        left: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .stat-card:active {
+        transform: translateY(-2px);
+    }
+    
+    .stat-icon {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        transition: var(--transition-base);
+    }
+    
+    .stat-card:hover .stat-icon {
+        transform: scale(1.05);
+        background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .stat-icon i {
+        transition: var(--transition-base);
+        color: white;
+    }
+    
+    .stat-number {
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        color: white;
+    }
+    
+    .stat-label {
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Card Styles */
+    .analytics-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+        transition: var(--transition-base);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        height: 100%;
+    }
+    
+    .analytics-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    @media (max-width: 768px) {
+        .analytics-card {
+            padding: var(--space-base);
+        }
+    }
+    
+    .analytics-card h3 {
+        margin-bottom: var(--space-base);
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        color: var(--secondary);
+    }
+    
+    /* Charts Row Layout */
+    .charts-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .charts-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+    }
+    
+    /* Chart Containers */
+    .chart-container {
+        position: relative;
+        min-height: 280px;
+        width: 100%;
+    }
+    
+    canvas {
+        max-height: 280px;
+        width: 100%;
+    }
+    
+    /* Period Buttons */
+    .period-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .period-btn {
+        padding: 0.375rem 0.875rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 2rem;
+        background: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-base);
+        min-height: 36px;
+    }
+    
+    .period-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .period-btn.active {
+        background: var(--primary-gradient);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Villages List */
+    .villages-list {
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: var(--space-sm);
+    }
+    
+    .villages-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .villages-list::-webkit-scrollbar-track {
+        background: var(--gray-light);
+        border-radius: 3px;
+    }
+    
+    .villages-list::-webkit-scrollbar-thumb {
+        background: var(--primary-light);
+        border-radius: 3px;
+    }
+    
+    .village-item {
+        margin-bottom: var(--space-base);
+    }
+    
+    .village-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: var(--space-xs);
+        font-size: 0.85rem;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+    }
+    
+    .village-name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-weight: 500;
+    }
+    
+    .village-name i {
+        color: var(--primary);
+        font-size: 0.8rem;
+    }
+    
+    .village-count {
+        font-weight: 700;
+        color: var(--primary);
+    }
+    
+    .progress-bar {
+        background: var(--gray-light);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        height: 6px;
+    }
+    
+    .progress-fill {
+        background: var(--primary-gradient);
+        height: 100%;
+        border-radius: var(--radius-sm);
+        transition: width 0.3s ease;
+    }
+    
+    /* Export Section */
+    .export-section {
+        display: flex;
+        gap: var(--space-lg);
+        flex-wrap: wrap;
+        align-items: flex-end;
+        margin-top: var(--space-base);
+    }
+    
+    .export-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+    }
+    
+    @media (max-width: 640px) {
+        .export-section {
+            flex-direction: column;
+            gap: var(--space-base);
+        }
+        
+        .export-group {
+            width: 100%;
+        }
+        
+        .export-buttons {
+            justify-content: stretch;
+        }
+        
+        .export-buttons .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+    
+    /* Header Section */
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-base);
+        margin-bottom: var(--space-lg);
+    }
+    
+    .analytics-header h1 {
+        color: var(--primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .analytics-header h1 {
+            font-size: 1.25rem;
+        }
+    }
+    
+    .filter-controls {
+        display: flex;
+        gap: var(--space-sm);
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-controls label {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    /* Form Controls */
+    .form-control {
+        padding: 0.5rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        background: white;
+        min-height: 40px;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+    }
+    
+    /* Button Styles */
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        border: none;
+        min-height: 40px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-xl);
+        color: var(--gray);
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: var(--space-base);
+        opacity: 0.5;
+    }
+    
+    /* Animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mb-4">
+    <!-- IMPROVED: Header -->
+    <div class="analytics-header">
+        <h1>
+            <i class="fas fa-chart-line"></i> Analytics Dashboard
+        </h1>
+        
+        <!-- Date Range Filter -->
+        <div class="filter-controls">
+            <label>Period:</label>
+            <select id="daysFilter" class="form-control" style="width: auto; min-width: 120px;">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+            </select>
+            <button id="refreshBtn" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+    
+    <!-- Stats Cards - Properly scaled for all screen sizes -->
+    <div class="stats-grid">
+        <div class="stat-card" style="background: linear-gradient(135deg, #2E7D32, #1B5E20);">
+            <div class="stat-icon">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="stat-number" id="totalReports">--</div>
+            <div class="stat-label">Total Reports</div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-number" id="activeReports">--</div>
+            <div class="stat-label">Active Reports</div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #059669);">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-number" id="resolutionRate">--%</div>
+            <div class="stat-label">Resolution Rate</div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #3B82F6, #2563EB);">
+            <div class="stat-icon">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div class="stat-number" id="avgResolution">--h</div>
+            <div class="stat-label">Avg Resolution</div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 1 -->
+    <div class="charts-row">
+        <div class="analytics-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-sm);">
+                <h3><i class="fas fa-chart-line" style="color: var(--primary);"></i> Report Trends</h3>
+                <div class="period-buttons">
+                    <button class="period-btn" data-period="daily">Daily</button>
+                    <button class="period-btn active" data-period="weekly">Weekly</button>
+                    <button class="period-btn" data-period="monthly">Monthly</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3><i class="fas fa-chart-pie" style="color: var(--primary);"></i> Reports by Type</h3>
+            <div class="chart-container">
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 2 -->
+    <div class="charts-row">
+        <div class="analytics-card">
+            <h3><i class="fas fa-tachometer-alt" style="color: var(--primary);"></i> Response Time by Type</h3>
+            <div class="chart-container">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3><i class="fas fa-map-marker-alt" style="color: var(--primary);"></i> Most Affected Villages</h3>
+            <div id="topVillagesList" class="villages-list">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-pulse"></i>
+                    <p>Loading data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 3 -->
+    <div class="charts-row">
+        <div class="analytics-card">
+            <h3><i class="fas fa-clock" style="color: var(--primary);"></i> Reports by Hour</h3>
+            <div class="chart-container">
+                <canvas id="hourChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3><i class="fas fa-chart-donut" style="color: var(--primary);"></i> Status Distribution</h3>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Response Time Trend -->
+    <div class="analytics-card" style="margin-bottom: 1.5rem;">
+        <h3><i class="fas fa-chart-line" style="color: var(--primary);"></i> Response Time Trend (Weekly)</h3>
+        <div class="chart-container">
+            <canvas id="responseTrendChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Export Section -->
+    <div class="analytics-card">
+        <h3><i class="fas fa-download" style="color: var(--primary);"></i> Export Data</h3>
+        <div class="export-section">
+            <div class="export-group">
+                <label class="form-label">Report Type</label>
+                <select id="exportType" class="form-control">
+                    <option value="all">All Reports</option>
+                    <option value="active">Active Reports</option>
+                    <option value="resolved">Resolved Reports</option>
+                </select>
+            </div>
+            <div class="export-group">
+                <label class="form-label">Format</label>
+                <div class="export-buttons">
+                    <button id="exportCSVBtn" class="btn btn-primary">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button id="exportExcelBtn" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button id="exportPDFBtn" class="btn btn-danger">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global chart instances
+    let trendChart, typeChart, responseTimeChart, statusChart, hourChart, responseTrendChart;
+    let currentPeriod = 'weekly';
+    
+    // ==================== FETCH FUNCTIONS ====================
+    async function fetchJSON(url) {
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.success ? data.data : null;
+        } catch (error) {
+            console.error('Fetch error:', error);
+            return null;
+        }
+    }
+    
+    // Load overview metrics
+    async function loadOverview() {
+        const days = document.getElementById('daysFilter').value;
+        const data = await fetchJSON(`/reports/api/analytics/overview/?days=${days}`);
+        
+        if (data) {
+            document.getElementById('totalReports').textContent = data.total_reports || 0;
+            document.getElementById('activeReports').textContent = data.active_reports || 0;
+            document.getElementById('resolutionRate').textContent = `${data.resolution_rate || 0}%`;
+            document.getElementById('avgResolution').textContent = data.avg_resolution_hours ? `${data.avg_resolution_hours}h` : '--';
+            
+            updateTypeChart(data.reports_by_type);
+            updateStatusChart(data.reports_by_status);
+            updateTopVillages(data.top_villages);
+        }
+    }
+    
+    // Load trend data
+    async function loadTrends() {
+        const days = document.getElementById('daysFilter').value;
+        const data = await fetchJSON(`/reports/api/analytics/trends/?period=${currentPeriod}&days=${days}`);
+        
+        if (data) {
+            updateTrendChart(data);
+        }
+    }
+    
+    // Load response time data
+    async function loadResponseTime() {
+        const days = document.getElementById('daysFilter').value;
+        const data = await fetchJSON(`/reports/api/analytics/response-time/?days=${days}`);
+        
+        if (data) {
+            updateResponseTimeChart(data.by_type);
+            updateResponseTrendChart(data.weekly_trend);
+        }
+    }
+    
+    // Load performance data
+    async function loadPerformance() {
+        const days = document.getElementById('daysFilter').value;
+        const data = await fetchJSON(`/reports/api/analytics/performance/?days=${days}`);
+        
+        if (data) {
+            updateHourChart(data.hour_distribution);
+        }
+    }
+    
+    // ==================== CHART UPDATES ====================
+    function updateTrendChart(data) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        
+        if (trendChart) trendChart.destroy();
+        
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Reports Submitted',
+                        data: data.reports,
+                        borderColor: '#2E7D32',
+                        backgroundColor: 'rgba(46,125,50,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#2E7D32'
+                    },
+                    {
+                        label: 'Resolved',
+                        data: data.resolved,
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16,185,129,0.05)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#10B981'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Number of Reports', font: { weight: 'bold' } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    function updateTypeChart(data) {
+        const ctx = document.getElementById('typeChart').getContext('2d');
+        
+        if (typeChart) typeChart.destroy();
+        
+        const typeLabels = { 'electricity': '⚡ Electricity', 'water': '💧 Water', 'network': '📡 Network' };
+        
+        typeChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => typeLabels[d.outage_type] || d.outage_type),
+                datasets: [{
+                    data: data.map(d => d.count),
+                    backgroundColor: ['#F59E0B', '#3B82F6', '#10B981'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw} reports` } }
+                },
+                cutout: '60%'
+            }
+        });
+    }
+    
+    function updateStatusChart(data) {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        
+        if (statusChart) statusChart.destroy();
+        
+        const statusLabels = {
+            'pending': '📝 Pending',
+            'verified': '✅ Verified',
+            'in_progress': '🔧 In Progress',
+            'resolved': '✔️ Resolved',
+            'rejected': '❌ Rejected'
+        };
+        
+        const statusColors = {
+            'pending': '#F59E0B',
+            'verified': '#3B82F6',
+            'in_progress': '#8B5CF6',
+            'resolved': '#10B981',
+            'rejected': '#EF4444'
+        };
+        
+        statusChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: data.map(d => statusLabels[d.status] || d.status),
+                datasets: [{
+                    data: data.map(d => d.count),
+                    backgroundColor: data.map(d => statusColors[d.status] || '#6B7280'),
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } } }
+            }
+        });
+    }
+    
+    function updateResponseTimeChart(data) {
+        const ctx = document.getElementById('responseTimeChart').getContext('2d');
+        
+        if (responseTimeChart) responseTimeChart.destroy();
+        
+        responseTimeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.type_display),
+                datasets: [{
+                    label: 'Average Resolution Time (hours)',
+                    data: data.map(d => d.avg_hours),
+                    backgroundColor: 'rgba(59,130,246,0.8)',
+                    borderRadius: 8,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)} hours` } }
+                },
+                scales: {
+                    y: { title: { display: true, text: 'Hours', font: { weight: 'bold' } }, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    function updateResponseTrendChart(data) {
+        const ctx = document.getElementById('responseTrendChart').getContext('2d');
+        
+        if (responseTrendChart) responseTrendChart.destroy();
+        
+        responseTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.week),
+                datasets: [{
+                    label: 'Avg Response Time (hours)',
+                    data: data.map(d => d.avg_hours),
+                    borderColor: '#EF4444',
+                    backgroundColor: 'rgba(239,68,68,0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#EF4444'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)} hours` } }
+                },
+                scales: {
+                    y: { title: { display: true, text: 'Hours', font: { weight: 'bold' } }, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    function updateHourChart(data) {
+        const ctx = document.getElementById('hourChart').getContext('2d');
+        
+        if (hourChart) hourChart.destroy();
+        
+        hourChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.label),
+                datasets: [{
+                    label: 'Reports Submitted',
+                    data: data.map(d => d.count),
+                    backgroundColor: 'rgba(139,92,246,0.8)',
+                    borderRadius: 8,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { title: { display: true, text: 'Number of Reports', font: { weight: 'bold' } }, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { title: { display: true, text: 'Hour of Day', font: { weight: 'bold' } }, grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    function updateTopVillages(villages) {
+        const container = document.getElementById('topVillagesList');
+        
+        if (!villages || villages.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-map-marker-alt"></i><p>No data available</p></div>';
+            return;
+        }
+        
+        const maxCount = villages[0].count;
+        
+        container.innerHTML = villages.map(v => {
+            const percentage = maxCount > 0 ? (v.count / maxCount * 100) : 0;
+            return `
+                <div class="village-item">
+                    <div class="village-header">
+                        <span class="village-name">
+                            <i class="fas fa-map-pin"></i>
+                            ${escapeHtml(v.location_text)}
+                        </span>
+                        <span class="village-count">${v.count} reports</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // ==================== UTILITIES ====================
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // ==================== EXPORT FUNCTIONS ====================
+    function exportData(format) {
+        const exportType = document.getElementById('exportType').value;
+        const days = document.getElementById('daysFilter').value;
+        const urls = {
+            csv: `/reports/api/analytics/export/csv/?type=${exportType}&days=${days}`,
+            excel: `/reports/api/analytics/export/excel/?type=${exportType}&days=${days}`,
+            pdf: `/reports/api/analytics/export/pdf/?type=${exportType}&days=${days}`
+        };
+        window.location.href = urls[format];
+    }
+    
+    // ==================== REFRESH ALL ====================
+    function refreshAll() {
+        loadOverview();
+        loadTrends();
+        loadResponseTime();
+        loadPerformance();
+        
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'message message-info';
+        toast.style.animation = 'slideInRight 0.3s ease';
+        toast.innerHTML = `
+            <div class="message-content">
+                <i class="fas fa-sync-alt fa-spin"></i>
+                <span>Dashboard data refreshed!</span>
+            </div>
+        `;
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    }
+    
+    // ==================== EVENT LISTENERS ====================
+    document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+    document.getElementById('daysFilter').addEventListener('change', refreshAll);
+    document.getElementById('exportCSVBtn').addEventListener('click', () => exportData('csv'));
+    document.getElementById('exportExcelBtn').addEventListener('click', () => exportData('excel'));
+    document.getElementById('exportPDFBtn').addEventListener('click', () => exportData('pdf'));
+    
+    // Period buttons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = btn.dataset.period;
+            loadTrends();
+        });
+    });
+    
+    // ==================== INITIAL LOAD ====================
+    refreshAll();
+    
+    // Auto-refresh every 60 seconds
+    setInterval(refreshAll, 60000);
+    
+    // Add animation to stat cards on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animation = `fadeInUp 0.4s ease ${index * 0.1}s forwards`;
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+        });
+    });
+</script>
+{% endblock %}

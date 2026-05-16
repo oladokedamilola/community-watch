@@ -1,0 +1,838 @@
+{% extends 'base_authenticated.html' %}
+{% load static %}
+
+{% block title %}Saved Posts{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* IMPROVED: Container with proper spacing */
+    .saved-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        width: 100%;
+    }
+    
+    /* IMPROVED: Page Header */
+    .page-header {
+        margin-bottom: var(--space-lg);
+    }
+    
+    .page-header h1 {
+        color: var(--primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .page-header h1 {
+            font-size: 1.25rem;
+        }
+    }
+    
+    /* IMPROVED: Filters Bar - Responsive */
+    .filters-bar {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: var(--space-base);
+        margin-bottom: var(--space-lg);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-base);
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: var(--shadow-sm);
+        position: sticky;
+        top: var(--top-navbar-height);
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    
+    @media (max-width: 768px) {
+        .filters-bar {
+            padding: var(--space-sm);
+            margin-bottom: var(--space-base);
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+    
+    .filter-group {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+    }
+    
+    @media (max-width: 768px) {
+        .filter-group {
+            justify-content: center;
+        }
+    }
+    
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid var(--gray-light);
+        border-radius: 2rem;
+        background: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition-base);
+        min-height: 40px;
+    }
+    
+    @media (max-width: 640px) {
+        .filter-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            min-height: 36px;
+        }
+    }
+    
+    .filter-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .filter-btn:active {
+        transform: translateY(0);
+    }
+    
+    .filter-btn.active {
+        background: var(--primary-gradient);
+        border-color: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* IMPROVED: Empty State */
+    .empty-saved {
+        text-align: center;
+        padding: var(--space-2xl) var(--space-lg);
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .empty-saved i {
+        font-size: 4rem;
+        background: linear-gradient(135deg, var(--gray-light), #e2e8f0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: var(--space-base);
+    }
+    
+    .empty-saved h3 {
+        color: var(--secondary);
+        margin-bottom: var(--space-sm);
+        font-size: 1.25rem;
+    }
+    
+    .empty-saved p {
+        color: var(--gray);
+        margin-bottom: var(--space-lg);
+        font-size: 0.9rem;
+    }
+    
+    /* IMPROVED: Feed Post Styles - Matching Community Feed */
+    .feed-post {
+        background: white;
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-base);
+        padding: var(--space-lg);
+        transition: var(--transition-base);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: var(--shadow-sm);
+        animation: fadeInUp 0.4s ease;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .feed-post:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    @media (max-width: 768px) {
+        .feed-post {
+            padding: var(--space-base);
+            margin-bottom: var(--space-sm);
+        }
+    }
+    
+    /* IMPROVED: Post Header */
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: var(--space-base);
+        margin-bottom: var(--space-base);
+        padding-bottom: var(--space-base);
+        border-bottom: 2px solid var(--gray-light);
+    }
+    
+    .post-author {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        flex: 1;
+    }
+    
+    .author-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+        }
+    }
+    
+    .author-avatar i {
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .author-info {
+        flex: 1;
+    }
+    
+    .author-name {
+        font-weight: 700;
+        color: var(--secondary);
+        display: block;
+        font-size: 0.95rem;
+    }
+    
+    .post-time {
+        font-size: 0.7rem;
+        color: var(--gray);
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+    }
+    
+    /* IMPROVED: Post Badges */
+    .post-badges {
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .post-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .post-type-electricity {
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        color: #D97706;
+    }
+    
+    .post-type-water {
+        background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+        color: #2563EB;
+    }
+    
+    .post-type-network {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        color: #059669;
+    }
+    
+    .post-status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        border-left: 2px solid #F59E0B;
+    }
+    
+    .post-status-verified {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563EB;
+        border-left: 2px solid #3B82F6;
+    }
+    
+    .post-status-in_progress {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7C3AED;
+        border-left: 2px solid #8B5CF6;
+    }
+    
+    .post-status-resolved {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border-left: 2px solid #10B981;
+    }
+    
+    /* IMPROVED: Save Button */
+    .save-btn {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: var(--space-sm);
+        border-radius: 50%;
+        transition: var(--transition-base);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .save-btn {
+            width: 36px;
+            height: 36px;
+        }
+    }
+    
+    .save-btn:hover {
+        background: rgba(46, 125, 50, 0.1);
+        transform: scale(1.1);
+    }
+    
+    .save-btn:active {
+        transform: scale(0.95);
+    }
+    
+    .save-btn.saved {
+        color: #f59e0b;
+    }
+    
+    .save-btn.saved i {
+        font-weight: 900;
+    }
+    
+    /* IMPROVED: Post Body */
+    .post-body {
+        margin-bottom: var(--space-base);
+    }
+    
+    .post-location {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
+        font-size: 0.9rem;
+        color: var(--secondary);
+        font-weight: 500;
+    }
+    
+    .post-location i {
+        color: var(--primary);
+    }
+    
+    .post-description {
+        color: var(--gray);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: var(--space-base);
+    }
+    
+    .post-photo {
+        margin-top: var(--space-base);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        cursor: pointer;
+        transition: var(--transition-base);
+    }
+    
+    .post-photo img {
+        width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+        transition: var(--transition-base);
+    }
+    
+    .post-photo:hover img {
+        transform: scale(1.02);
+    }
+    
+    /* IMPROVED: Post Actions */
+    .post-actions {
+        display: flex;
+        gap: var(--space-base);
+        flex-wrap: wrap;
+        padding-top: var(--space-base);
+        border-top: 1px solid var(--gray-light);
+    }
+    
+    .action-btn {
+        background: none;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        cursor: pointer;
+        transition: var(--transition-base);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--gray);
+        text-decoration: none;
+        min-height: 40px;
+    }
+    
+    @media (max-width: 640px) {
+        .action-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+    }
+    
+    .action-btn:hover {
+        background: rgba(46, 125, 50, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .action-btn:active {
+        transform: translateY(0);
+    }
+    
+    .action-btn.active {
+        color: var(--primary);
+    }
+    
+    .action-btn i {
+        font-size: 1rem;
+    }
+    
+    .action-count {
+        font-weight: 700;
+    }
+    
+    /* IMPROVED: Button Styles */
+    .btn {
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-sm);
+        text-decoration: none;
+        min-height: 40px;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="saved-container">
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-bookmark" style="color: var(--primary);"></i> Saved Posts
+            </h1>
+        </div>
+        
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div class="filter-group">
+                <button class="filter-btn {% if current_type == 'all' %}active{% endif %}" data-filter="type" data-value="all">All Types</button>
+                <button class="filter-btn {% if current_type == 'electricity' %}active{% endif %}" data-filter="type" data-value="electricity">⚡ Electricity</button>
+                <button class="filter-btn {% if current_type == 'water' %}active{% endif %}" data-filter="type" data-value="water">💧 Water</button>
+                <button class="filter-btn {% if current_type == 'network' %}active{% endif %}" data-filter="type" data-value="network">📡 Network</button>
+            </div>
+            <div class="filter-group">
+                <button class="filter-btn {% if current_sort == 'latest' %}active{% endif %}" data-filter="sort" data-value="latest">Latest</button>
+                <button class="filter-btn {% if current_sort == 'most_urgent' %}active{% endif %}" data-filter="sort" data-value="most_urgent">Most Urgent</button>
+                <button class="filter-btn {% if current_sort == 'oldest' %}active{% endif %}" data-filter="sort" data-value="oldest">Oldest</button>
+            </div>
+        </div>
+        
+        <!-- Saved Posts -->
+        {% if reports %}
+            {% for report in reports %}
+            <div class="feed-post" data-report-id="{{ report.id }}">
+                <div class="post-header">
+                    <div class="post-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="author-info">
+                            <span class="author-name">
+                                {% if report.is_anonymous %}
+                                    Anonymous {% if report.anonymous_name %}({{ report.anonymous_name }}){% else %}Community Member{% endif %}
+                                {% else %}
+                                    {{ report.user.get_full_name|default:report.user.email|truncatechars:20 }}
+                                {% endif %}
+                            </span>
+                            <span class="post-time">
+                                <i class="far fa-clock"></i> {{ report.reported_at|timesince }} ago
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                        <button class="save-btn saved" data-report-id="{{ report.id }}" title="Unsave this post">
+                            <i class="fas fa-bookmark"></i>
+                        </button>
+                        <div class="post-badges">
+                            <span class="post-badge post-type-{{ report.outage_type }}">
+                                <i class="fas {% if report.outage_type == 'electricity' %}fa-bolt{% elif report.outage_type == 'water' %}fa-tint{% else %}fa-wifi{% endif %}"></i>
+                                {{ report.get_outage_type_display }}
+                            </span>
+                            <span class="post-badge post-status-{{ report.status }}">
+                                <i class="fas {{ report.get_status_icon }}"></i>
+                                {{ report.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="post-body">
+                    <div class="post-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ report.location_text }}</span>
+                    </div>
+                    <div class="post-description">
+                        {{ report.description|truncatechars:200 }}
+                    </div>
+                    {% if report.photo %}
+                    <div class="post-photo">
+                        <img src="{{ report.photo.url }}" alt="Outage photo" onclick="window.open(this.src)">
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="post-actions">
+                    <button class="action-btn reaction-btn" data-reaction="urgent">
+                        <i class="fas fa-ambulance"></i>
+                        <span class="action-count urgent-count">0</span>
+                        <span>Urgent</span>
+                    </button>
+                    <button class="action-btn reaction-btn" data-reaction="helpful">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span class="action-count helpful-count">0</span>
+                        <span>Helpful</span>
+                    </button>
+                    <a href="{% url 'reports:track_report' report.report_id %}" class="action-btn" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>View Details</span>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-saved">
+                <i class="fas fa-bookmark"></i>
+                <h3>No Saved Posts</h3>
+                <p>Save posts you want to keep track of by clicking the bookmark icon on any post.</p>
+                <a href="{% url 'reports:public_feed' %}" class="btn btn-primary">
+                    <i class="fas fa-newspaper"></i> Browse Feed
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // ==================== CSRF TOKEN ====================
+    function getCSRFToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === ('csrftoken' + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCSRFToken();
+    
+    // ==================== SAVE/UNSAVE POST ====================
+    async function savePost(reportId, btn) {
+        const action = 'unsave';
+        
+        try {
+            const response = await fetch(`/reports/api/save-post/${reportId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ action: action })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && !data.is_saved) {
+                // Add fade-out animation before removal
+                const post = btn.closest('.feed-post');
+                post.style.animation = 'fadeOut 0.3s ease forwards';
+                
+                setTimeout(() => {
+                    post.remove();
+                    showToast('Post removed from saved', 'success');
+                    
+                    // Check if no posts left
+                    if (document.querySelectorAll('.feed-post').length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Something went wrong', 'error');
+        }
+    }
+    
+    // ==================== REACTION COUNTS ====================
+    async function initializeReactionCounts() {
+        const posts = document.querySelectorAll('.feed-post');
+        
+        for (const post of posts) {
+            const reportId = post.dataset.reportId;
+            
+            try {
+                const urgentBtn = post.querySelector('.reaction-btn[data-reaction="urgent"]');
+                const helpfulBtn = post.querySelector('.reaction-btn[data-reaction="helpful"]');
+                
+                const response = await fetch(`/reports/api/reactions/counts/${reportId}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        if (urgentBtn) {
+                            const urgentCountSpan = urgentBtn.querySelector('.action-count');
+                            if (urgentCountSpan) urgentCountSpan.textContent = data.urgent_count || 0;
+                        }
+                        if (helpfulBtn) {
+                            const helpfulCountSpan = helpfulBtn.querySelector('.action-count');
+                            if (helpfulCountSpan) helpfulCountSpan.textContent = data.helpful_count || 0;
+                        }
+                        if (data.user_reaction === 'urgent' && urgentBtn) {
+                            urgentBtn.classList.add('active');
+                        } else if (data.user_reaction === 'helpful' && helpfulBtn) {
+                            helpfulBtn.classList.add('active');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading reaction counts:', error);
+            }
+        }
+    }
+    
+    // ==================== TOAST NOTIFICATION ====================
+    function showToast(message, type) {
+        const container = document.getElementById('messagesContainer');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `message message-${type}`;
+        toast.style.animation = 'slideInRight 0.3s ease';
+        toast.innerHTML = `
+            <div class="message-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${escapeHtml(message)}</span>
+            </div>
+            <button class="close-message" onclick="this.closest('.message').remove()">&times;</button>
+        `;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100px)';
+                setTimeout(() => {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            }
+        }, 5000);
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // ==================== REACTION HANDLER ====================
+    async function handleReaction(btn, reportId, reactionType) {
+        const countSpan = btn.querySelector('.action-count');
+        const originalText = countSpan.textContent;
+        
+        try {
+            const response = await fetch(`/reports/api/reaction/${reportId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ reaction_type: reactionType })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const post = btn.closest('.feed-post');
+                const urgentBtn = post.querySelector('.reaction-btn[data-reaction="urgent"]');
+                const helpfulBtn = post.querySelector('.reaction-btn[data-reaction="helpful"]');
+                const urgentCountSpan = urgentBtn?.querySelector('.action-count');
+                const helpfulCountSpan = helpfulBtn?.querySelector('.action-count');
+                
+                if (urgentCountSpan) urgentCountSpan.textContent = data.urgent_count || 0;
+                if (helpfulCountSpan) helpfulCountSpan.textContent = data.helpful_count || 0;
+                
+                const otherBtn = reactionType === 'urgent' ? helpfulBtn : urgentBtn;
+                
+                if (data.action === 'removed') {
+                    btn.classList.remove('active');
+                } else if (data.action === 'added' || data.action === 'updated') {
+                    btn.classList.add('active');
+                    if (otherBtn) otherBtn.classList.remove('active');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            countSpan.textContent = originalText;
+            showToast('Something went wrong', 'error');
+        }
+    }
+    
+    // ==================== INITIALIZE ====================
+    // Save buttons
+    document.querySelectorAll('.save-btn').forEach(btn => {
+        const reportId = btn.dataset.reportId;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            savePost(reportId, btn);
+        });
+    });
+    
+    // Reaction buttons
+    document.querySelectorAll('.reaction-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const post = this.closest('.feed-post');
+            const reportId = post.dataset.reportId;
+            const reactionType = this.dataset.reaction;
+            await handleReaction(this, reportId, reactionType);
+        });
+    });
+    
+    // Filter functionality
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filterType = btn.dataset.filter;
+            const filterValue = btn.dataset.value;
+            const currentUrl = new URL(window.location.href);
+            
+            if (filterType === 'type') {
+                currentUrl.searchParams.set('type', filterValue);
+            } else if (filterType === 'sort') {
+                currentUrl.searchParams.set('sort', filterValue);
+            }
+            
+            window.location.href = currentUrl.toString();
+        });
+    });
+    
+    // Initialize reaction counts
+    initializeReactionCounts();
+    
+    // Add fade-out animation keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Add animation to posts on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const posts = document.querySelectorAll('.feed-post');
+        posts.forEach((post, index) => {
+            post.style.animation = `fadeInUp 0.4s ease ${index * 0.05}s forwards`;
+            post.style.opacity = '0';
+            post.style.transform = 'translateY(20px)';
+        });
+    });
+</script>
+{% endblock %}

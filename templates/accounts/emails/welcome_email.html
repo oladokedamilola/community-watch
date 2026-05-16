@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to GridWatch!</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2>Welcome to GridWatch! 🎉</h2>
+    <p>Hi {{ user.first_name|default:user.email }},</p>
+    <p>Your account has been successfully verified! You're now ready to start reporting and tracking outages in your community.</p>
+    <p><a href="{{ dashboard_url }}" style="background: #2E7D32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a></p>
+    <p>With GridWatch, you can:</p>
+    <ul>
+        <li>⚡ Report electricity, water, and network outages</li>
+        <li>🗺️ View live outage maps</li>
+        <li>🔔 Get real-time status updates</li>
+    </ul>
+    <p>Thank you for joining our community!</p>
+    <hr>
+    <p style="font-size: 12px; color: #666;">&copy; 2026 GridWatch | Watch. Report. Restore.</p>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GridWatch PWA Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .warning { color: orange; }
+        .test-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        h2 { color: #2E7D32; }
+    </style>
+</head>
+<body>
+    <h1>🧪 GridWatch PWA Test Suite</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function addTest(name, passed, details = '') {
+            const div = document.createElement('div');
+            div.className = 'test-card';
+            div.innerHTML = `
+                <h3>${passed ? '✅' : '❌'} ${name}</h3>
+                <p class="${passed ? 'pass' : 'fail'}">${passed ? 'PASSED' : 'FAILED'}</p>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            resultsDiv.appendChild(div);
+        }
+        
+        // Test 1: HTTPS
+        addTest('HTTPS', location.protocol === 'https:', `Protocol: ${location.protocol}`);
+        
+        // Test 2: Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                addTest('Service Worker Registered', registrations.length > 0, 
+                    `Found ${registrations.length} service worker(s)`);
+            }).catch(() => {
+                addTest('Service Worker Registered', false, 'Error checking registration');
+            });
+        } else {
+            addTest('Service Worker Supported', false, 'Service Worker API not available');
+        }
+        
+        // Test 3: Manifest
+        fetch('/manifest.json')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(manifest => {
+                addTest('Manifest.json', true, 
+                    `Name: ${manifest.name}, Theme: ${manifest.theme_color}`);
+            })
+            .catch(() => {
+                addTest('Manifest.json', false, 'Manifest not found or invalid');
+            });
+        
+        // Test 4: IndexedDB
+        if ('indexedDB' in window) {
+            const request = indexedDB.open('test', 1);
+            request.onsuccess = () => {
+                addTest('IndexedDB', true, 'IndexedDB is available');
+                request.result.close();
+                indexedDB.deleteDatabase('test');
+            };
+            request.onerror = () => {
+                addTest('IndexedDB', false, 'IndexedDB not accessible');
+            };
+        } else {
+            addTest('IndexedDB', false, 'IndexedDB not supported');
+        }
+        
+        // Test 5: Push Notifications
+        if ('Notification' in window) {
+            addTest('Notifications API', true, `Permission: ${Notification.permission}`);
+        } else {
+            addTest('Notifications API', false, 'Notifications not supported');
+        }
+        
+        // Test 6: Background Sync
+        if ('SyncManager' in window) {
+            addTest('Background Sync', true, 'SyncManager available');
+        } else {
+            addTest('Background Sync', false, 'Background Sync not supported');
+        }
+        
+        // Test 7: Online/Offline detection
+        addTest('Online/Offline Events', true, `Current status: ${navigator.onLine ? 'online' : 'offline'}`);
+        
+        // Test 8: Cache API
+        if ('caches' in window) {
+            addTest('Cache API', true, 'Cache storage available');
+        } else {
+            addTest('Cache API', false, 'Cache API not supported');
+        }
+        
+        // Test 9: Fetch API
+        if ('fetch' in window) {
+            addTest('Fetch API', true, 'Fetch available');
+        } else {
+            addTest('Fetch API', false, 'Fetch not supported');
+        }
+        
+        // Test 10: Web Share API
+        if ('share' in navigator) {
+            addTest('Web Share API', true, 'Share functionality available');
+        } else {
+            addTest('Web Share API', false, 'Web Share not supported (optional)');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}GridWatch - Monitor & Report Outages in Rural Communities{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section" style="
+    position: relative;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: white;
+    background: linear-gradient(135deg, #1a3c1e, #2E7D32);
+">
+    <!-- Background Image with Overlay -->
+    <div class="hero-bg" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url('{% static "images/hero-bg.jpg" %}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    ">
+        <div class="hero-overlay" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%);
+        "></div>
+    </div>
+    
+    <!-- Hero Content -->
+    <div class="hero-content" style="
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        max-width: 800px;
+        padding: 2rem;
+        animation: fadeInUp 0.8s ease;
+    ">
+        <div class="hero-badge" style="
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        ">
+            <i class="fas fa-eye"></i> Real-Time Monitoring
+        </div>
+        
+        <h1 style="
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            font-family: 'Poppins', sans-serif;
+        ">
+            Watch. Report.<br>
+            <span style="color: var(--accent);">Restore.</span>
+        </h1>
+        
+        <p style="
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        ">
+            Empowering rural communities to report and track utility outages. 
+            Together, we can improve service delivery and restore hope.
+        </p>
+        
+        <div class="hero-buttons" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            {% if user.is_authenticated %}
+                <a href="{% url 'reports:report_form' %}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    <i class="fas fa-plus-circle"></i> Report an Outage
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-light" style="padding: 1rem 2rem; font-size: 1.1rem; background: transparent; border: 2px solid white; color: white;">
+                    <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:register' %}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                    <i class="fas fa-user-plus"></i> Get Started Free
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-light" style="padding: 1rem 2rem; font-size: 1.1rem; background: transparent; border: 2px solid white; color: white;">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            {% endif %}
+        </div>
+        
+        <!-- Stats Bar -->
+        <div class="hero-stats" style="
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        ">
+            <div class="stat-item">
+                <div class="stat-number" style="font-size: 1.8rem; font-weight: 700;">{{ total_reports|default:"1,000+" }}</div>
+                <div class="stat-label" style="font-size: 0.85rem; opacity: 0.8;">Reports Submitted</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="font-size: 1.8rem; font-weight: 700;">{{ communities_reached|default:"50+" }}</div>
+                <div class="stat-label" style="font-size: 0.85rem; opacity: 0.8;">Communities</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" style="font-size: 1.8rem; font-weight: 700;">{{ resolution_rate|default:"85%" }}</div>
+                <div class="stat-label" style="font-size: 0.85rem; opacity: 0.8;">Resolution Rate</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator" style="
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        animation: bounce 2s infinite;
+    ">
+        <a href="#features" style="color: white; font-size: 1.5rem;">
+            <i class="fas fa-chevron-down"></i>
+        </a>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="features-section" style="padding: 5rem 2rem; background: white;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+            <span class="section-badge" style="
+                display: inline-block;
+                background: rgba(46,125,50,0.1);
+                color: var(--primary);
+                padding: 0.5rem 1rem;
+                border-radius: 2rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            ">
+                Why Choose GridWatch
+            </span>
+            <h2 style="
+                font-size: 2.5rem;
+                color: var(--secondary);
+                margin-bottom: 1rem;
+                font-family: 'Poppins', sans-serif;
+            ">
+                Everything You Need to Monitor<br>Outages Effectively
+            </h2>
+            <p style="color: var(--gray); max-width: 600px; margin: 0 auto;">
+                Simple, powerful tools to report issues and track resolution progress
+            </p>
+        </div>
+        
+        <div class="features-grid" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        ">
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-bolt" style="font-size: 2.5rem; color: var(--accent);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Report Any Outage</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    Electricity, water supply, or network issues — report in seconds with our simple form. Add photos and exact location.
+                </p>
+            </div>
+            
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-map-marked-alt" style="font-size: 2.5rem; color: var(--info);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Live Outage Map</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    View all active outages on an interactive map. See what's happening in your community and nearby areas in real-time.
+                </p>
+            </div>
+            
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-bell" style="font-size: 2.5rem; color: var(--success);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Real-time Updates</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    Get instant notifications when your report status changes. Email, in-app, and push notifications keep you informed.
+                </p>
+            </div>
+            
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-chart-line" style="font-size: 2.5rem; color: var(--info);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Data-Driven Insights</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    Analytics dashboard shows outage patterns, response times, and most affected areas to drive better decisions.
+                </p>
+            </div>
+            
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-mobile-alt" style="font-size: 2.5rem; color: var(--accent);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Works Offline</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    Install as a PWA and report outages even without internet. Reports sync automatically when you're back online.
+                </p>
+            </div>
+            
+            <div class="feature-card" style="
+                padding: 2rem;
+                background: white;
+                border-radius: 1rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-align: center;
+            ">
+                <div class="feature-icon" style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                ">
+                    <i class="fas fa-shield-alt" style="font-size: 2.5rem; color: var(--success);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.75rem; font-size: 1.3rem;">Community Powered</h3>
+                <p style="color: var(--gray); line-height: 1.6;">
+                    Join thousands of community members working together to improve utility services for everyone.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works" style="padding: 5rem 2rem; background: linear-gradient(135deg, #F9FAFB, #F3F4F6);">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <div class="section-header" style="text-align: center; margin-bottom: 3rem;">
+            <span class="section-badge" style="
+                display: inline-block;
+                background: rgba(46,125,50,0.1);
+                color: var(--primary);
+                padding: 0.5rem 1rem;
+                border-radius: 2rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            ">
+                Simple Process
+            </span>
+            <h2 style="
+                font-size: 2.5rem;
+                color: var(--secondary);
+                margin-bottom: 1rem;
+                font-family: 'Poppins', sans-serif;
+            ">
+                How GridWatch Works
+            </h2>
+            <p style="color: var(--gray); max-width: 600px; margin: 0 auto;">
+                Three simple steps to report and track outages
+            </p>
+        </div>
+        
+        <div class="steps-container" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            position: relative;
+        ">
+            <!-- Connecting lines (desktop only) -->
+            <div class="step-connector" style="
+                position: absolute;
+                top: 80px;
+                left: 20%;
+                right: 20%;
+                height: 2px;
+                background: linear-gradient(90deg, var(--primary), var(--accent));
+                display: none;
+            "></div>
+            
+            <div class="step" style="text-align: center; position: relative;">
+                <div class="step-number" style="
+                    width: 60px;
+                    height: 60px;
+                    background: var(--primary);
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0 auto 1rem;
+                    font-family: 'Poppins', sans-serif;
+                ">1</div>
+                <div class="step-icon" style="margin-bottom: 1rem;">
+                    <i class="fas fa-file-alt" style="font-size: 2rem; color: var(--primary);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.5rem;">Report an Outage</h3>
+                <p style="color: var(--gray);">
+                    Fill out our simple form. Tell us what's wrong and where. Add a photo if you can.
+                </p>
+            </div>
+            
+            <div class="step" style="text-align: center; position: relative;">
+                <div class="step-number" style="
+                    width: 60px;
+                    height: 60px;
+                    background: var(--primary);
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0 auto 1rem;
+                    font-family: 'Poppins', sans-serif;
+                ">2</div>
+                <div class="step-icon" style="margin-bottom: 1rem;">
+                    <i class="fas fa-eye" style="font-size: 2rem; color: var(--accent);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.5rem;">Track Progress</h3>
+                <p style="color: var(--gray);">
+                    Get a unique ID to track your report. See status updates in real-time.
+                </p>
+            </div>
+            
+            <div class="step" style="text-align: center; position: relative;">
+                <div class="step-number" style="
+                    width: 60px;
+                    height: 60px;
+                    background: var(--primary);
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0 auto 1rem;
+                    font-family: 'Poppins', sans-serif;
+                ">3</div>
+                <div class="step-icon" style="margin-bottom: 1rem;">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                </div>
+                <h3 style="margin-bottom: 0.5rem;">Get Resolved</h3>
+                <p style="color: var(--gray);">
+                    Receive notifications when the issue is fixed. Rate the resolution and help others.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section" style="
+    padding: 5rem 2rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    text-align: center;
+">
+    <div class="container" style="max-width: 800px; margin: 0 auto;">
+        <h2 style="
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-family: 'Poppins', sans-serif;
+        ">
+            Ready to Make a Difference?
+        </h2>
+        <p style="
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        ">
+            Join thousands of community members already using GridWatch to improve utility services.
+        </p>
+        <div class="cta-buttons" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            {% if user.is_authenticated %}
+                <a href="{% url 'reports:report_form' %}" class="btn" style="
+                    background: white;
+                    color: var(--primary);
+                    padding: 1rem 2rem;
+                    font-size: 1.1rem;
+                ">
+                    <i class="fas fa-plus-circle"></i> Report an Outage Now
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:register' %}" class="btn" style="
+                    background: white;
+                    color: var(--primary);
+                    padding: 1rem 2rem;
+                    font-size: 1.1rem;
+                ">
+                    <i class="fas fa-user-plus"></i> Create Free Account
+                </a>
+                <a href="{% url 'reports:outage_map' %}" class="btn btn-outline-light" style="
+                    background: transparent;
+                    border: 2px solid white;
+                    color: white;
+                    padding: 1rem 2rem;
+                    font-size: 1.1rem;
+                ">
+                    <i class="fas fa-map"></i> View Live Map
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateX(-50%) translateY(0);
+        }
+        40% {
+            transform: translateX(-50%) translateY(10px);
+        }
+        60% {
+            transform: translateX(-50%) translateY(5px);
+        }
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .step {
+        transition: transform 0.3s;
+    }
+    
+    .step:hover {
+        transform: translateY(-5px);
+    }
+    
+    @media (min-width: 1024px) {
+        .step-connector {
+            display: block;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .hero-section h1 {
+            font-size: 2rem !important;
+        }
+        
+        .hero-section p {
+            font-size: 1rem !important;
+        }
+        
+        .hero-stats {
+            gap: 1rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.2rem !important;
+        }
+        
+        .features-grid {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .steps-container {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+</style>
+
+<script>
+    // Add intersection observer for fade-in animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    // Observe feature cards
+    document.querySelectorAll('.feature-card, .step').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+</script>
+{% endblock %}

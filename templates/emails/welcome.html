@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to GridWatch</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1F2937;
+            margin: 0;
+            padding: 0;
+            background-color: #F9FAFB;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #FFFFFF;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E7D32, #1B5E20);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2E7D32;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #6B7280;
+            border-top: 1px solid #E5E7EB;
+        }
+        .feature-list {
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+        .feature-list li {
+            margin: 10px 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👋 Welcome to GridWatch!</h1>
+            <p>Your voice for reliable utilities</p>
+        </div>
+        
+        <div class="content">
+            <h2>Hello {{ user.get_full_name|default:user.email|default:"there" }},</h2>
+            
+            <p>Thank you for joining <strong>GridWatch</strong>! You're now part of a community dedicated to improving utility services in rural areas.</p>
+            
+            <h3>What you can do:</h3>
+            <ul class="feature-list">
+                <li>⚡ <strong>Report outages</strong> - Electricity, water, or network issues</li>
+                <li>🗺️ <strong>View live map</strong> - See outages in your area</li>
+                <li>📊 <strong>Track status</strong> - Follow your report progress</li>
+                <li>🔔 <strong>Get updates</strong> - Receive notifications when status changes</li>
+            </ul>
+            
+            <div style="text-align: center;">
+                <a href="{{ site_url }}{% url 'reports:report_form' %}" class="button">
+                    Report an Outage →
+                </a>
+            </div>
+            
+            <p>Together, we can help service providers respond faster and make our communities better.</p>
+            
+            <p>Need help? Contact us at <a href="mailto:support@gridwatch.com">support@gridwatch.com</a></p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2026 GridWatch. All rights reserved.</p>
+            <p>
+                <a href="{{ site_url }}/unsubscribe/">Unsubscribe</a> | 
+                <a href="{{ site_url }}/privacy/">Privacy Policy</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
