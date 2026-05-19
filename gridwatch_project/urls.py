@@ -32,6 +32,12 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('reports/', include('reports.urls')),
     path('', include('pwa.urls')),  # PWA URLs (manifest.json, service worker)
+    
+    
+    # Temporary setup endpoints (remove after deploy)
+    path('setup/migrate/', views.run_migrations, name='run_migrations'),
+    path('setup/superuser/', views.create_superuser, name='create_superuser'),
+    path('setup/static/', views.collect_static, name='collect_static'),
 ]
 
 if settings.DEBUG:
