@@ -293,3 +293,6 @@ WEBPUSH_SETTINGS = {
 # DEFAULT PRIMARY KEY FIELD TYPE
 # ============================================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom error handlers
+CSRF_FAILURE_VIEW = 'gridwatch_project.views.csrf_failure_view'

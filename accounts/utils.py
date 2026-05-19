@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def send_verification_email(user, token_obj):
     """Send email verification link to user"""
     try:
-        verification_url = f"{settings.SITE_URL}{reverse('verify_email', args=[token_obj.token])}"
+        verification_url = f"{settings.SITE_URL}{reverse('accounts:verify_email', args=[token_obj.token])}"
         
         context = {
             'user': user,
@@ -41,7 +41,7 @@ def send_verification_email(user, token_obj):
 def send_password_reset_email(user, token_obj):
     """Send password reset link to user"""
     try:
-        reset_url = f"{settings.SITE_URL}{reverse('password_reset_confirm', args=[token_obj.token])}"
+        reset_url = f"{settings.SITE_URL}{reverse('accounts:password_reset_confirm', args=[token_obj.token])}"
         
         context = {
             'user': user,
@@ -74,7 +74,7 @@ def send_welcome_email(user):
         context = {
             'user': user,
             'site_name': 'GridWatch',
-            'login_url': f"{settings.SITE_URL}{reverse('login')}",
+            'login_url': f"{settings.SITE_URL}{reverse('accounts:login')}",
             'dashboard_url': f"{settings.SITE_URL}{reverse('reports:community_dashboard')}",
         }
         
